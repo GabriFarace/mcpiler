@@ -109,7 +109,7 @@ truncation with original character count and explicit completeness gaps.
 
 Verification completed on 2026-08-20:
 
-- `uv run python -m unittest discover -v` — 6 tests passed.
+- `uv run python -m unittest discover -v` — 7 tests passed.
 - `uv run python -m compileall -q mcpiler tests` — passed.
 - Public-seam fixture verification — `operations=8 matched=7 unmatched=1
   limit=4000`.

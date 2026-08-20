@@ -217,7 +217,7 @@ class StructuralAnalysisTests(unittest.TestCase):
                     {
                         "openapi": "3.1.0",
                         "paths": {
-                            "/normalized": {"get": {"responses": {}}},
+                            "/normalized/": {"get": {"responses": {}}},
                             "/ambiguous": {"get": {"responses": {}}},
                             "/unsupported": {"put": {"responses": {}}},
                             "/dynamic": {"get": {"responses": {}}},
@@ -258,6 +258,20 @@ class StructuralAnalysisTests(unittest.TestCase):
             self.assertEqual(statuses["GET /ambiguous"], "ambiguous")
             self.assertEqual(statuses["PUT /unsupported"], "unsupported")
             self.assertEqual(statuses["GET /dynamic"], "unmatched")
+            normalized = next(
+                context
+                for context in analysis.endpoint_contexts
+                if context.operation_key == "GET /normalized"
+            )
+            operation_evidence = next(
+                evidence
+                for evidence in normalized.evidence
+                if evidence.kind == "openapi.operation"
+            )
+            self.assertEqual(
+                operation_evidence.provenance.json_pointer,
+                "#/paths/~1normalized~1/get",
+            )
 
     def test_identical_inputs_produce_stable_contexts_and_evidence_ids(self) -> None:
         first = extract_endpoint_contexts(
@@ -273,6 +287,28 @@ class StructuralAnalysisTests(unittest.TestCase):
         for context in first.endpoint_contexts:
             evidence_ids = [evidence.id for evidence in context.evidence]
             self.assertEqual(len(evidence_ids), len(set(evidence_ids)))
+
+    def test_returned_structural_analysis_is_deeply_immutable(self) -> None:
+        analysis = extract_endpoint_contexts(
+            FIXTURE_ROOT / "openapi.json",
+            FIXTURE_ROOT / "backend",
+        )
+        create = next(
+            context
+            for context in analysis.endpoint_contexts
+            if context.operation_key == "POST /orders"
+        )
+        request_schema = create.openapi_operation.request_body.schemas[0].schema
+        operation_evidence = next(
+            evidence for evidence in create.evidence if evidence.kind == "openapi.operation"
+        )
+
+        with self.assertRaises(TypeError):
+            request_schema["type"] = "array"
+        with self.assertRaises(AttributeError):
+            request_schema["required"].append("unexpected")
+        with self.assertRaises(TypeError):
+            operation_evidence.value["method"] = "DELETE"
 
 
 if __name__ == "__main__":

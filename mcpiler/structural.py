@@ -1,14 +1,26 @@
 """Deterministic OpenAPI and bounded Python source evidence extraction."""
 
 import ast
+from collections.abc import Mapping
 from dataclasses import dataclass
 import json
 from pathlib import Path
+from types import MappingProxyType
 from typing import Literal
 
 
 type JsonValue = None | bool | int | float | str | list[JsonValue] | dict[str, JsonValue]
 type JsonObject = dict[str, JsonValue]
+type FrozenJsonValue = (
+    None
+    | bool
+    | int
+    | float
+    | str
+    | tuple[FrozenJsonValue, ...]
+    | Mapping[str, FrozenJsonValue]
+)
+type FrozenJsonObject = Mapping[str, FrozenJsonValue]
 type SourceMatchStatus = Literal["matched", "unmatched", "ambiguous", "unsupported"]
 type EvidenceOrigin = Literal["openapi", "source"]
 type CompletenessStatus = Literal["complete", "incomplete"]
@@ -38,7 +50,7 @@ class StructuralInputError(Exception):
 @dataclass(frozen=True, slots=True)
 class MediaSchema:
     media_type: str
-    schema: JsonObject
+    schema: FrozenJsonObject
 
 
 @dataclass(frozen=True, slots=True)
@@ -47,7 +59,7 @@ class OpenApiParameter:
     location: str
     required: bool
     description: str | None
-    schema: JsonObject | None
+    schema: FrozenJsonObject | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -127,8 +139,11 @@ class EvidenceRecord:
     id: str
     origin: EvidenceOrigin
     kind: str
-    value: JsonValue
+    value: FrozenJsonValue
     provenance: EvidenceProvenance
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "value", _freeze_json(self.value))
 
 
 @dataclass(frozen=True, slots=True)
@@ -160,6 +175,12 @@ class StructuralAnalysis:
 
 
 @dataclass(frozen=True, slots=True)
+class _OpenApiRecord:
+    operation: OpenApiOperation
+    json_pointer: str
+
+
+@dataclass(frozen=True, slots=True)
 class _Route:
     method: str
     path: str
@@ -187,7 +208,7 @@ def extract_endpoint_contexts(
 
     contexts = tuple(
         sorted(
-            (_endpoint_context(operation, routes) for operation in operations),
+            (_endpoint_context(record, routes) for record in operations),
             key=lambda context: context.operation_key,
         )
     )
@@ -221,9 +242,10 @@ def _load_openapi(openapi_path: Path) -> JsonObject:
 
 
 def _endpoint_context(
-    operation: OpenApiOperation,
+    record: _OpenApiRecord,
     routes: dict[str, tuple[_Route, ...]],
 ) -> EndpointContext:
+    operation = record.operation
     operation_key = f"{operation.method} {operation.path}"
     candidates = routes.get(operation_key, ())
     locations = tuple(candidate.decorator_location for candidate in candidates)
@@ -257,7 +279,9 @@ def _endpoint_context(
         )
         handler = None
 
-    evidence = _openapi_evidence(operation) + _source_evidence(candidates, handler)
+    evidence = _openapi_evidence(operation, record.json_pointer) + _source_evidence(
+        candidates, handler
+    )
     completeness = _evidence_completeness(source_match, handler)
     return EndpointContext(
         operation_key=operation_key,
@@ -269,9 +293,9 @@ def _endpoint_context(
     )
 
 
-def _openapi_operations(document: object) -> tuple[OpenApiOperation, ...]:
+def _openapi_operations(document: object) -> tuple[_OpenApiRecord, ...]:
     paths = document["paths"]
-    operations: list[OpenApiOperation] = []
+    operations: list[_OpenApiRecord] = []
     for raw_path, path_item in paths.items():
         path = _normalize_path(raw_path)
         for raw_method, raw_operation in path_item.items():
@@ -280,15 +304,20 @@ def _openapi_operations(document: object) -> tuple[OpenApiOperation, ...]:
                 continue
             operation = _object(raw_operation)
             operations.append(
-                OpenApiOperation(
-                    method=method.upper(),
-                    path=path,
-                    operation_id=_optional_string(operation.get("operationId")),
-                    summary=_optional_string(operation.get("summary")),
-                    description=_optional_string(operation.get("description")),
-                    parameters=_parameters(operation),
-                    request_body=_request_body(operation),
-                    responses=_responses(operation),
+                _OpenApiRecord(
+                    operation=OpenApiOperation(
+                        method=method.upper(),
+                        path=path,
+                        operation_id=_optional_string(operation.get("operationId")),
+                        summary=_optional_string(operation.get("summary")),
+                        description=_optional_string(operation.get("description")),
+                        parameters=_parameters(operation),
+                        request_body=_request_body(operation),
+                        responses=_responses(operation),
+                    ),
+                    json_pointer=(
+                        f"#/paths/{_pointer_segment(raw_path)}/{method}"
+                    ),
                 )
             )
     return tuple(operations)
@@ -307,7 +336,7 @@ def _parameters(operation: JsonObject) -> tuple[OpenApiParameter, ...]:
                 location=_required_string(raw_parameter.get("in")),
                 required=_boolean(raw_parameter.get("required", False)),
                 description=_optional_string(raw_parameter.get("description")),
-                schema=_optional_object(raw_parameter.get("schema")),
+                schema=_optional_frozen_object(raw_parameter.get("schema")),
             )
         )
     return tuple(parameters)
@@ -344,7 +373,12 @@ def _media_schemas(content: JsonObject) -> tuple[MediaSchema, ...]:
         media = _object(media_value)
         schema = media.get("schema")
         if schema is not None:
-            schemas.append(MediaSchema(media_type=media_type, schema=_object(schema)))
+            schemas.append(
+                MediaSchema(
+                    media_type=media_type,
+                    schema=_freeze_object(_object(schema)),
+                )
+            )
     return tuple(schemas)
 
 
@@ -354,10 +388,10 @@ def _object(value: JsonValue) -> JsonObject:
     return value
 
 
-def _optional_object(value: JsonValue) -> JsonObject | None:
+def _optional_frozen_object(value: JsonValue) -> FrozenJsonObject | None:
     if value is None:
         return None
-    return _object(value)
+    return _freeze_object(_object(value))
 
 
 def _required_string(value: JsonValue) -> str:
@@ -376,6 +410,25 @@ def _boolean(value: JsonValue) -> bool:
     if not isinstance(value, bool):
         raise ValueError("expected a boolean")
     return value
+
+
+def _freeze_object(value: JsonObject) -> FrozenJsonObject:
+    frozen = _freeze_json(value)
+    if not isinstance(frozen, Mapping):
+        raise TypeError("expected a frozen object")
+    return frozen
+
+
+def _freeze_json(value: object) -> FrozenJsonValue:
+    if value is None or isinstance(value, (bool, int, float, str)):
+        return value
+    if isinstance(value, Mapping):
+        return MappingProxyType(
+            {str(key): _freeze_json(item) for key, item in value.items()}
+        )
+    if isinstance(value, (list, tuple)):
+        return tuple(_freeze_json(item) for item in value)
+    raise TypeError("evidence contains a non-JSON value")
 
 
 def _literal_routes(source_root: Path) -> dict[str, tuple[_Route, ...]]:
@@ -520,8 +573,10 @@ def _bounded(value: str) -> BoundedText:
     )
 
 
-def _openapi_evidence(operation: OpenApiOperation) -> tuple[EvidenceRecord, ...]:
-    pointer = f"#/paths/{_pointer_segment(operation.path)}/{operation.method.lower()}"
+def _openapi_evidence(
+    operation: OpenApiOperation,
+    pointer: str,
+) -> tuple[EvidenceRecord, ...]:
     evidence: list[EvidenceRecord] = [
         EvidenceRecord(
             id="openapi.operation",
