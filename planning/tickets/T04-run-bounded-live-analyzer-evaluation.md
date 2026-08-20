@@ -69,7 +69,7 @@ broaden the approved dependency set.
       synced environment receives an import smoke test for the approved live
       dependencies.
 
-## Public testing/evaluation seam to agree before coding
+## Testing/evaluation seam
 
 The public evaluation seam is the same compilation boundary used in T03, with
 only the `SemanticAnalyzer` implementation substituted. The agreed evidence for
@@ -83,7 +83,7 @@ invalid output follows the already-tested endpoint-local failure path. Normal
 software tests continue to use the fake and assert shared validation, curation,
 and failure invariants rather than live predictions or provider SDK internals.
 
-## Out of scope
+## Out-of-scope notes
 
 - `capabilities.yaml`, multi-tool capability discovery, or workflow generation.
 - Evaluation harnesses, captured-run infrastructure, repeated trials,

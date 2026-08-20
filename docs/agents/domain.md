@@ -20,7 +20,7 @@ This is a single-context repository:
 ├── CONTEXT.md
 ├── planning/
 │   └── decisions/
-└── src/
+└── mcpiler/
 ```
 
 ## Use the glossary's vocabulary

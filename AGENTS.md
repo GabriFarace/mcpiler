@@ -79,7 +79,8 @@ on probabilistic model output.
 
 Use deterministic tests for software correctness.
 
-Use `evals/` for probabilistic model behavior.
+Use `planning/evals/` for probabilistic model behavior so evaluation evidence
+remains inside the assessment system of record.
 
 Normal unit/integration tests should not require paid or local LLM calls.
 

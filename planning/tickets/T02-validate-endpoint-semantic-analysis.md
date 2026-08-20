@@ -52,7 +52,7 @@ Blocked by **T01: Extract bounded endpoint contexts from the fixed fixture**.
       it does not compute operational/action floors, effective risk, or a
       curation recommendation.
 
-## Public testing/evaluation seam to agree before coding
+## Testing/evaluation seam
 
 The public seam is `SemanticAnalyzer.analyze(endpoint context)`. Contract tests
 inject the deterministic fake and assert accepted typed results or stable typed
@@ -67,7 +67,7 @@ Pydantic internals, or private orchestration helpers, and they never construct a
 live analyzer or require credentials, network access, a paid call, or a local
 model.
 
-## Out of scope
+## Out-of-scope notes
 
 - Deterministic operational/action risk floors, effective-risk calculation, or
   expose/hide/requires-review policy.

@@ -53,7 +53,7 @@ Use the already-approved public seams:
 Tests use deterministic boundary doubles only for the external model SDK and do
 not make network, credential, paid, or local-model calls.
 
-## Out of scope
+## Out-of-scope notes
 
 - New providers, dependencies, policy rules, route-analysis generalization, or
   artifact types.
@@ -89,7 +89,9 @@ a live model run.
 
 Documentation now includes runnable fixed fake/live commands, usable non-secret
 LM Studio defaults, the human-review-only artifact boundary, and verification
-commands. No dependency was added.
+commands. T05 introduced no new package; the final audit later promoted the
+already-resolved `langchain-core` and `langsmith` packages to direct
+dependencies because `mcpiler/live.py` imports their public APIs.
 
 Verification:
 

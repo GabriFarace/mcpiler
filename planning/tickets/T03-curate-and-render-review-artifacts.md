@@ -74,7 +74,7 @@ Blocked by **T02: Validate endpoint-local semantic analysis**.
       interface decision aids requiring human review, not a deployable MCP
       server, publication approval, authorization result, or security guarantee.
 
-## Public testing/evaluation seam to agree before coding
+## Testing/evaluation seam
 
 The public seam is the approved compilation boundary: a compile request supplies
 the fixed OpenAPI path, source-root path, output directory, and injected
@@ -89,7 +89,7 @@ separation, blocker precedence, malformed semantic output isolation, and all
 cross-artifact consistency invariants. Tests use the standard library and do not
 assert private parser, policy-helper, renderer, or prompt implementation details.
 
-## Out of scope
+## Out-of-scope notes
 
 - A live analyzer invocation or probabilistic semantic correctness threshold.
 - `capabilities.yaml`, endpoint-level capability hints, or multi-tool capability
@@ -108,6 +108,11 @@ assert private parser, policy-helper, renderer, or prompt implementation details
 `done`
 
 ## Implementation evidence
+
+> Historical ticket-completion note: the fake-only CLI and absence of live
+> provider integration described below were accurate when T03 completed.
+> T04 subsequently added the live analyzer path, and T05 remediated review
+> findings; those later tickets and the current README describe the final state.
 
 Implemented T03 as a deterministic completion and rendering layer over the
 existing T01 `EndpointContext` and T02 `EndpointSemanticRecord` contracts. The

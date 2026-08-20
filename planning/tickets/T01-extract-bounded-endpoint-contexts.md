@@ -48,7 +48,7 @@ None. This ticket can start immediately.
       reported as a global compilation input failure rather than partial trusted
       evidence.
 
-## Public testing/evaluation seam to agree before coding
+## Testing/evaluation seam
 
 Approved on 2026-08-20:
 
@@ -75,7 +75,7 @@ The deterministic test must demonstrate the eight-operation enumeration, seven
 exact matches, unmatched archive retention, stable evidence/provenance, and
 bounded source behavior using only the standard library test stack.
 
-## Out of scope
+## Out-of-scope notes
 
 - Semantic interpretation, confidence, relevance, or semantic risk signals.
 - Operational/action risk floors or expose/hide/requires-review decisions.

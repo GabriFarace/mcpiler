@@ -5,11 +5,16 @@ Date: 2026-08-20
 ## Recommendation
 
 Assume the MVP cloud target is OpenAI or another service implementing the
-OpenAI Chat Completions contract. Declare only these direct runtime
-dependencies:
+OpenAI Chat Completions contract. Declare these direct runtime dependencies:
 
 - `pydantic>=2.13.4,<3`
 - `langchain-openai>=1.4.1,<2`
+- `langchain-core>=1.6.0,<2`
+- `langsmith>=0.11.1,<0.12`
+
+The final two packages support the T05 tracing-isolation implementation and
+were promoted from transitive to direct dependencies because production code
+imports their public APIs. See the T05 addendum below.
 
 Declare no development dependencies. Use `unittest`, `tempfile`, and
 `unittest.mock` for fake-backed deterministic tests.
@@ -66,6 +71,14 @@ Requests, HTTPX directly, python-dotenv, Click/Typer, an MCP SDK, pytest,
 `langchain`, LangGraph, an agent framework, or an LM Studio SDK. Transitive
 packages required by `langchain-openai` should remain transitive unless
 application code imports their public APIs directly.
+
+## T05 dependency addendum
+
+T05's tracing-isolation remediation imports public APIs from `langchain-core`
+and `langsmith` directly. Both packages were already resolved transitively by
+`langchain-openai`; they are declared as direct runtime dependencies after the
+final audit so the package metadata matches the imports without adding a new
+library or capability.
 
 ## Compatibility and package-management notes
 
