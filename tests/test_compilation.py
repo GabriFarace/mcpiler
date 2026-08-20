@@ -12,6 +12,7 @@ from mcpiler.compiler import (
     compile_interface,
     effective_risk,
     operational_risk_floor,
+    validate_artifact_invariants,
 )
 from mcpiler.__main__ import main
 from mcpiler.semantic import (
@@ -388,6 +389,7 @@ class CompilationAcceptanceTests(unittest.TestCase):
             self.assertIn("human review", report)
             self.assertIn("not a deployable MCP server", report)
             self.assertIn("effective_risk_high [source.handler]", report)
+            self.assertIn("The effective operational/action risk is high.", report)
             self.assertEqual(len(first_analyzer.calls), 7)
 
             for artifact_name in (
@@ -541,6 +543,59 @@ class CompilationAcceptanceTests(unittest.TestCase):
         self.assertEqual([tool["name"] for tool in proposed["tools"]], expected)
         self.assertEqual([tool["name"] for tool in baseline["tools"]], expected)
 
+    def test_fallback_names_do_not_claim_a_later_unique_operation_id(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            source_root = root / "backend"
+            source_root.mkdir()
+            (source_root / "app.py").write_text(
+                "@app.get('/aaa')\n"
+                "def aaa():\n"
+                "    return {}\n"
+                "@app.get('/orders')\n"
+                "def list_orders():\n"
+                "    return []\n",
+                encoding="utf-8",
+            )
+            openapi_path = root / "openapi.json"
+            openapi_path.write_text(
+                json.dumps(
+                    {
+                        "openapi": "3.1.0",
+                        "paths": {
+                            "/aaa": {"get": {"responses": {}}},
+                            "/orders": {
+                                "get": {
+                                    "operationId": "get_aaa",
+                                    "responses": {},
+                                }
+                            },
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            output = root / "artifacts"
+
+            compile_interface(
+                CompileRequest(
+                    openapi_path,
+                    source_root,
+                    output,
+                    FakeSemanticAnalyzer(),
+                )
+            )
+            proposed = json.loads(
+                (output / "manifest.json").read_text(encoding="utf-8")
+            )
+            baseline = json.loads(
+                (output / "baseline_manifest.json").read_text(encoding="utf-8")
+            )
+
+        self.assertEqual([tool["name"] for tool in proposed["tools"]], ["get_aaa"])
+        self.assertEqual(baseline["tools"][1]["name"], "get_aaa")
+        self.assertRegex(baseline["tools"][0]["name"], r"^get_aaa_[0-9a-f]{8}$")
+
     def test_ir_invariant_failure_is_global_before_artifact_publication(self) -> None:
         structural = extract_endpoint_contexts(
             FIXTURE_ROOT / "openapi.json",
@@ -556,6 +611,54 @@ class CompilationAcceptanceTests(unittest.TestCase):
             complete_semantic_ir(structural, incomplete_semantic)
 
         self.assertEqual(raised.exception.category, "invariant_failed")
+
+    def test_cross_artifact_validator_rejects_name_and_ir_projection_drift(self) -> None:
+        structural = extract_endpoint_contexts(
+            FIXTURE_ROOT / "openapi.json",
+            FIXTURE_ROOT / "backend",
+        )
+        semantic_ir = complete_semantic_ir(
+            structural,
+            analyze_endpoint_contexts(
+                structural.endpoint_contexts,
+                FakeSemanticAnalyzer(),
+            ),
+        )
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            output = Path(temporary_directory) / "artifacts"
+            compile_interface(
+                CompileRequest(
+                    FIXTURE_ROOT / "openapi.json",
+                    FIXTURE_ROOT / "backend",
+                    output,
+                    FakeSemanticAnalyzer(),
+                )
+            )
+            artifacts = {
+                name: (output / name).read_text(encoding="utf-8")
+                for name in (
+                    "semantic_ir.json",
+                    "manifest.json",
+                    "baseline_manifest.json",
+                    "risk_report.md",
+                )
+            }
+
+        inconsistent_names = dict(artifacts)
+        manifest = json.loads(inconsistent_names["manifest.json"])
+        manifest["tools"][0]["name"] = "drifted_name"
+        inconsistent_names["manifest.json"] = json.dumps(manifest)
+        with self.assertRaises(CompilationError) as name_failure:
+            validate_artifact_invariants(semantic_ir, inconsistent_names)
+        self.assertEqual(name_failure.exception.category, "invariant_failed")
+
+        inconsistent_ir = dict(artifacts)
+        ir_document = json.loads(inconsistent_ir["semantic_ir.json"])
+        ir_document["operations"] = ir_document["operations"][:-1]
+        inconsistent_ir["semantic_ir.json"] = json.dumps(ir_document)
+        with self.assertRaises(CompilationError) as ir_failure:
+            validate_artifact_invariants(semantic_ir, inconsistent_ir)
+        self.assertEqual(ir_failure.exception.category, "invariant_failed")
 
     def test_global_input_and_artifact_write_failures_are_clear(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:

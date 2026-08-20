@@ -147,7 +147,7 @@ command exits zero because it emitted a complete review artifact set.
 
 Verification completed on 2026-08-20:
 
-- `uv run python -m unittest discover -v` — 24 tests passed.
+- `uv run python -m unittest discover -v` — 26 tests passed.
 - `uv run python -m compileall -q mcpiler tests` — passed.
 - Public-boundary import smoke for the compiler, Semantic IR, risk helpers, and
   CLI module — passed.
@@ -163,6 +163,12 @@ Verification completed on 2026-08-20:
   supported contexts.
 - No linter or static type checker is configured. No dependency was added for
   T03, and no live analyzer or model call was made.
+- The required two-axis review found no documented-standards violations or
+  scope creep. Review findings for authoritative semantic-claim traversal,
+  unique-operation-ID precedence, and explicit cross-artifact name/IR checks
+  were fixed and covered by regression tests. The time-boxed single T03 module
+  remains a documented judgement-call limitation rather than a correctness
+  issue.
 
 Known limitations are deliberate T03 scope boundaries: the CLI uses only the
 fixed fake analyzer; manifests are project-defined MCP-like review artifacts,

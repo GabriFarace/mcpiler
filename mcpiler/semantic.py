@@ -156,7 +156,7 @@ def validate_endpoint_semantics(
     evidence_ids = {evidence.id for evidence in context.evidence}
     if any(
         evidence_ref not in evidence_ids
-        for claim in _semantic_claims(semantics)
+        for claim in semantic_claims(semantics)
         for evidence_ref in claim.evidence_refs
     ):
         return SemanticFailure("invalid_evidence_reference")
@@ -204,7 +204,8 @@ def _validation_failure_category(error: ValidationError) -> FailureCategory:
     return "invalid_semantic_output"
 
 
-def _semantic_claims(semantics: EndpointSemantics) -> tuple[SemanticClaim, ...]:
+def semantic_claims(semantics: EndpointSemantics) -> tuple[SemanticClaim, ...]:
+    """Return every evidence-linked claim in authoritative schema order."""
     return (
         semantics.purpose,
         semantics.agent_description,

@@ -23,10 +23,12 @@ from .semantic import (
     SemanticStageResult,
     SemanticSuccess,
     analyze_endpoint_contexts,
+    semantic_claims,
 )
 from .structural import (
     EndpointContext,
     FrozenJsonObject,
+    MediaSchema,
     OpenApiOperation,
     StructuralAnalysis,
     StructuralInputError,
@@ -206,7 +208,7 @@ def compile_interface(request: CompileRequest) -> CompilationResult:
     semantic = analyze_endpoint_contexts(structural.endpoint_contexts, request.analyzer)
     semantic_ir = complete_semantic_ir(structural, semantic)
     artifacts = _render_artifacts(semantic_ir)
-    _validate_artifact_invariants(semantic_ir, artifacts)
+    validate_artifact_invariants(semantic_ir, artifacts)
     artifact_paths = _write_artifacts(request.output_dir, artifacts)
 
     counts = {
@@ -402,7 +404,7 @@ def _blocker_reasons(record: EndpointSemanticRecord) -> tuple[PolicyReason, ...]
 def _material_uncertainty_reasons(
     semantics: EndpointSemantics,
 ) -> tuple[PolicyReason, ...]:
-    claims = _semantic_claims(semantics)
+    claims = semantic_claims(semantics)
     low_confidence_claims = tuple(claim for claim in claims if claim.confidence == "low")
     reasons: list[PolicyReason] = []
     if low_confidence_claims:
@@ -429,17 +431,6 @@ def _material_uncertainty_reasons(
             )
         )
     return tuple(reasons)
-
-
-def _semantic_claims(semantics: EndpointSemantics) -> tuple[SemanticClaim, ...]:
-    return (
-        semantics.purpose,
-        semantics.agent_description,
-        *semantics.preconditions,
-        *semantics.side_effects,
-        semantics.relevance,
-        *semantics.semantic_risk_signals,
-    )
 
 
 def _evidence_refs(claims: Iterable[SemanticClaim]) -> tuple[str, ...]:
@@ -473,12 +464,7 @@ def _render_artifacts(semantic_ir: SemanticIr) -> dict[str, str]:
         for operation in semantic_ir.operations
     ]
     documents: dict[str, object] = {
-        "semantic_ir.json": {
-            "schema_version": semantic_ir.schema_version,
-            "notice": _NOTICE,
-            "run": _json_value(semantic_ir.run),
-            "operations": _json_value(semantic_ir.operations),
-        },
+        "semantic_ir.json": _semantic_ir_document(semantic_ir),
         "manifest.json": {
             "tools": proposed_tools,
             "_meta": {
@@ -526,8 +512,11 @@ def _proposed_tool(operation: SemanticIrOperation, name: str) -> dict[str, objec
             "An exposed operation does not have successful semantic analysis.",
         )
     semantics = operation.analysis.semantics
-    tool = _base_tool(operation.context.openapi_operation, name, semantic=True)
-    tool["description"] = semantics.agent_description.text
+    tool = _base_tool(
+        operation.context.openapi_operation,
+        name,
+        semantics.agent_description.text,
+    )
     tool["_meta"] = {
         "mcpiler": {
             "source_operation": _source_operation_identity(operation.context),
@@ -545,7 +534,12 @@ def _proposed_tool(operation: SemanticIrOperation, name: str) -> dict[str, objec
 
 
 def _baseline_tool(operation: SemanticIrOperation, name: str) -> dict[str, object]:
-    tool = _base_tool(operation.context.openapi_operation, name, semantic=False)
+    openapi_operation = operation.context.openapi_operation
+    tool = _base_tool(
+        openapi_operation,
+        name,
+        _openapi_description(openapi_operation),
+    )
     tool["_meta"] = {
         "mcpiler": {
             "source_operation": _source_operation_identity(operation.context),
@@ -557,16 +551,11 @@ def _baseline_tool(operation: SemanticIrOperation, name: str) -> dict[str, objec
 def _base_tool(
     operation: OpenApiOperation,
     name: str,
-    *,
-    semantic: bool,
+    description: str,
 ) -> dict[str, object]:
     tool: dict[str, object] = {
         "name": name,
-        "description": (
-            ""
-            if semantic
-            else _openapi_description(operation)
-        ),
+        "description": description,
         "inputSchema": _input_schema(operation),
     }
     output_schema = _output_schema(operation)
@@ -608,7 +597,7 @@ def _output_schema(operation: OpenApiOperation) -> object | None:
     return None
 
 
-def _preferred_media_schema(schemas: object) -> FrozenJsonObject:
+def _preferred_media_schema(schemas: tuple[MediaSchema, ...]) -> FrozenJsonObject:
     selected = next(
         (item for item in schemas if item.media_type == "application/json"),
         schemas[0],
@@ -646,6 +635,11 @@ def _tool_names(
         if operation_id and _valid_tool_name(operation_id):
             operation_id_counts[operation_id] = operation_id_counts.get(operation_id, 0) + 1
 
+    reserved_names = {
+        operation_id
+        for operation_id, count in operation_id_counts.items()
+        if count == 1
+    }
     assigned: dict[str, str] = {}
     used: set[str] = set()
     for record in operations:
@@ -659,12 +653,36 @@ def _tool_names(
             name = operation_id
         else:
             name = _fallback_tool_name(context)
-        if name in used:
-            digest = hashlib.sha256(context.operation_key.encode("utf-8")).hexdigest()[:8]
-            name = f"{name}_{digest}"
+        if not operation_id or operation_id_counts.get(operation_id) != 1:
+            name = _available_fallback_name(
+                name,
+                context.operation_key,
+                used | reserved_names,
+            )
+        elif name in used:
+            raise CompilationError(
+                "invariant_failed",
+                "A unique OpenAPI operation ID could not be preserved as a tool name.",
+            )
         assigned[context.operation_key] = name
         used.add(name)
     return assigned
+
+
+def _available_fallback_name(
+    base_name: str,
+    operation_key: str,
+    unavailable: set[str],
+) -> str:
+    if base_name not in unavailable:
+        return base_name
+    digest = hashlib.sha256(operation_key.encode("utf-8")).hexdigest()[:8]
+    candidate = f"{base_name}_{digest}"
+    suffix = 2
+    while candidate in unavailable:
+        candidate = f"{base_name}_{digest}_{suffix}"
+        suffix += 1
+    return candidate
 
 
 def _valid_tool_name(value: str) -> bool:
@@ -741,6 +759,7 @@ def _render_risk_report(semantic_ir: SemanticIr) -> str:
                 if reason.evidence_refs
                 else ""
             )
+            + f": {reason.message}"
             for reason in operation.recommendation.reasons
         )
         policy = f"{operation.recommendation.rule_id}: {policy_reasons}"
@@ -781,10 +800,11 @@ def _json_value(value: object) -> object:
     return value
 
 
-def _validate_artifact_invariants(
+def validate_artifact_invariants(
     semantic_ir: SemanticIr,
     artifacts: Mapping[str, str],
 ) -> None:
+    """Reject rendered projections that drift from their authoritative Semantic IR."""
     keys = [operation.context.operation_key for operation in semantic_ir.operations]
     if keys != sorted(keys) or len(keys) != len(set(keys)):
         raise CompilationError(
@@ -792,38 +812,64 @@ def _validate_artifact_invariants(
             "Semantic IR operations are not unique and canonically ordered.",
         )
     try:
+        semantic_ir_document = json.loads(artifacts["semantic_ir.json"])
         manifest = json.loads(artifacts["manifest.json"])
         baseline = json.loads(artifacts["baseline_manifest.json"])
-    except (KeyError, json.JSONDecodeError) as error:
+        proposed_records = [
+            (
+                tool["_meta"]["mcpiler"]["source_operation"]["operation_key"],
+                tool["name"],
+            )
+            for tool in manifest["tools"]
+        ]
+        baseline_records = [
+            (
+                tool["_meta"]["mcpiler"]["source_operation"]["operation_key"],
+                tool["name"],
+            )
+            for tool in baseline["tools"]
+        ]
+    except (KeyError, TypeError, json.JSONDecodeError) as error:
         raise CompilationError(
             "invariant_failed",
             "The rendered artifact set is incomplete or invalid.",
         ) from error
-    proposed_keys = [
-        tool["_meta"]["mcpiler"]["source_operation"]["operation_key"]
-        for tool in manifest["tools"]
-    ]
-    baseline_keys = [
-        tool["_meta"]["mcpiler"]["source_operation"]["operation_key"]
-        for tool in baseline["tools"]
-    ]
+    proposed_keys = [key for key, _ in proposed_records]
+    baseline_keys = [key for key, _ in baseline_records]
     exposed_keys = [
         operation.context.operation_key
         for operation in semantic_ir.operations
         if operation.recommendation.outcome == "expose"
     ]
-    names = [tool["name"] for tool in baseline["tools"]]
+    proposed_names = [name for _, name in proposed_records]
+    baseline_names = [name for _, name in baseline_records]
+    baseline_name_by_key = dict(baseline_records)
     report = artifacts.get("risk_report.md", "")
     if (
-        proposed_keys != exposed_keys
+        semantic_ir_document != _semantic_ir_document(semantic_ir)
+        or proposed_keys != exposed_keys
         or baseline_keys != keys
-        or len(names) != len(set(names))
+        or len(proposed_names) != len(set(proposed_names))
+        or len(baseline_names) != len(set(baseline_names))
+        or any(
+            baseline_name_by_key.get(key) != name
+            for key, name in proposed_records
+        )
         or any(report.count(f"`{key}`") != 1 for key in keys)
     ):
         raise CompilationError(
             "invariant_failed",
             "The rendered artifacts do not cover the authoritative Semantic IR consistently.",
         )
+
+
+def _semantic_ir_document(semantic_ir: SemanticIr) -> dict[str, object]:
+    return {
+        "schema_version": semantic_ir.schema_version,
+        "notice": _NOTICE,
+        "run": _json_value(semantic_ir.run),
+        "operations": _json_value(semantic_ir.operations),
+    }
 
 
 def _write_artifacts(
