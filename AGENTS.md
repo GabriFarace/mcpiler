@@ -5,7 +5,7 @@
 This repository is a time-boxed AI-native engineering assessment.
 
 The goal is to build the smallest credible implementation of the
-Agent Interface Compiler idea while making product decisions,
+MCP Interface Compiler idea while making product decisions,
 AI-assisted development, testing, evaluation, and trade-offs inspectable.
 
 Optimize for:
