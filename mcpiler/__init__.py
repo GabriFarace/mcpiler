@@ -1,5 +1,15 @@
 """Offline MCP interface compiler core."""
 
+from .compiler import (
+    CompilationError,
+    CompilationResult,
+    CompileRequest,
+    SemanticIr,
+    compile_interface,
+    complete_semantic_ir,
+    effective_risk,
+    operational_risk_floor,
+)
 from .semantic import (
     EndpointSemantics,
     FakeSemanticAnalyzer,
@@ -14,6 +24,9 @@ from .semantic import (
 from .structural import StructuralAnalysis, StructuralInputError, extract_endpoint_contexts
 
 __all__ = [
+    "CompilationError",
+    "CompilationResult",
+    "CompileRequest",
     "EndpointSemantics",
     "FakeSemanticAnalyzer",
     "SemanticAnalysis",
@@ -21,9 +34,14 @@ __all__ = [
     "SemanticFailure",
     "SemanticSkipped",
     "SemanticSuccess",
+    "SemanticIr",
     "StructuralAnalysis",
     "StructuralInputError",
     "analyze_endpoint_contexts",
+    "compile_interface",
+    "complete_semantic_ir",
+    "effective_risk",
     "extract_endpoint_contexts",
+    "operational_risk_floor",
     "validate_endpoint_semantics",
 ]

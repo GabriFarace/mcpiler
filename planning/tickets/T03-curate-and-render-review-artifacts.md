@@ -22,55 +22,55 @@ Blocked by **T02: Validate endpoint-local semantic analysis**.
 
 ## Acceptance criteria
 
-- [ ] The deterministic operational/action floor is low for `GET`, medium for
+- [x] The deterministic operational/action floor is low for `GET`, medium for
       `POST` and `PATCH`, high for `DELETE`, and unknown for unsupported methods;
       it is described only as a likelihood-of-state-change floor.
-- [ ] Effective risk is the maximum of the deterministic floor and validated
+- [x] Effective risk is the maximum of the deterministic floor and validated
       semantic risk-signal severity; semantic output cannot lower a floor or
       override a deterministic blocker.
-- [ ] The fixed policy applies the approved ordering: blockers and material
+- [x] The fixed policy applies the approved ordering: blockers and material
       uncertainty require review; unknown relevance or high/unknown effective
       risk requires review; sufficiently supported internal/infrastructure
       operations below high risk are hidden; sufficiently supported user-facing
       operations at low/medium risk are exposed; all unhandled states require
       review.
-- [ ] Material uncertainty follows the approved ordinal rule: low confidence on
+- [x] Material uncertainty follows the approved ordinal rule: low confidence on
       a decision-bearing field, an explicit uncertainty reason, unknown
       relevance, or a missing/invalid evidence reference requires review. No
       numeric or aggregate confidence score is introduced.
-- [ ] Endpoint-local unmatched, ambiguous, unsupported, truncated, analyzer
+- [x] Endpoint-local unmatched, ambiguous, unsupported, truncated, analyzer
       failure, malformed output, and invalid-reference cases remain in the run
       as `requires-review`, are omitted from the proposed manifest, and do not
       block unrelated operations.
-- [ ] `semantic_ir.json` is the authoritative stable-order record of all eight
+- [x] `semantic_ir.json` is the authoritative stable-order record of all eight
       operations and contains complete structural evidence, semantic status,
       relevance, risk, recommendation, policy reasons, evidence references, and
       deterministic run metadata without a volatile timestamp.
-- [ ] `manifest.json` contains exactly the expose recommendations and uses the
+- [x] `manifest.json` contains exactly the expose recommendations and uses the
       approved MCP-like tool fields, with project-specific semantics and
       provenance confined to `_meta.mcpiler`.
-- [ ] `baseline_manifest.json` contains all eight operations, preserves useful
+- [x] `baseline_manifest.json` contains all eight operations, preserves useful
       OpenAPI names, descriptions, parameters, and schemas, and contains no
       semantic filtering or enrichment.
-- [ ] `risk_report.md` covers every operation and compares baseline exposure,
+- [x] `risk_report.md` covers every operation and compares baseline exposure,
       evidence status, relevance, operational floor, semantic signals,
       effective risk, compiler recommendation, policy reasons, and evidence
       gaps.
-- [ ] The fake-backed golden run produces eight Semantic IR records, four
+- [x] The fake-backed golden run produces eight Semantic IR records, four
       proposed tools, eight baseline tools, exactly four expose, three
       requires-review, and one hide recommendation, with the operation outcomes
       specified by the approved MVP spec.
-- [ ] The proposed manifest is exactly the expose subset of Semantic IR; the
+- [x] The proposed manifest is exactly the expose subset of Semantic IR; the
       baseline and report cover every Semantic IR operation; operations and
       tools use canonical stable ordering and deterministic names.
-- [ ] The CLI is a thin adapter over the compilation boundary, reports artifact
+- [x] The CLI is a thin adapter over the compilation boundary, reports artifact
       locations and recommendation/degraded counts, exits zero after isolated
       endpoint failures when consistent review artifacts were emitted, and
       exits non-zero with a concise diagnostic for global compilation failure.
-- [ ] Artifact write/serialization failure is global and never presents a
+- [x] Artifact write/serialization failure is global and never presents a
       partial artifact set as a successful run; credentials, raw prompts, and
       raw model responses are never emitted.
-- [ ] The output documentation states that the artifacts are candidate MCP
+- [x] The output documentation states that the artifacts are candidate MCP
       interface decision aids requiring human review, not a deployable MCP
       server, publication approval, authorization result, or security guarantee.
 
@@ -105,10 +105,69 @@ assert private parser, policy-helper, renderer, or prompt implementation details
 
 ## Status
 
-`blocked`
+`done`
 
-## Implementation evidence placeholder
+## Implementation evidence
 
-Not started. On completion, record the implementation summary, CLI demonstration
-command/result, deterministic test and import-smoke results, golden artifact
-counts, artifact consistency evidence, and known limitations here.
+Implemented T03 as a deterministic completion and rendering layer over the
+existing T01 `EndpointContext` and T02 `EndpointSemanticRecord` contracts. The
+new compiler boundary applies fixed method risk floors, monotonic effective-risk
+calculation, claim-level material uncertainty, and the six approved ordered
+curation rule IDs. It retains the original structural context and semantic stage
+result in each authoritative Semantic IR operation instead of introducing
+parallel structural or semantic models.
+
+All four renderers consume the same completed Semantic IR. The proposed manifest
+contains expose recommendations only; the baseline mechanically contains every
+OpenAPI operation without semantic enrichment; and the risk report contains one
+canonical row per operation. JSON serialization is stable and rejects non-JSON
+numeric values, tool naming has a deterministic method/path collision fallback,
+and global invariant, serialization, and staged-write failures never return a
+successful compilation result. The CLI only parses paths, injects the
+deterministic fake analyzer, calls the compilation boundary, and formats the
+result.
+
+Deterministic CLI demonstration on 2026-08-20:
+
+```text
+uv run python -m mcpiler \
+  --openapi fixtures/order_management/openapi.json \
+  --source-root fixtures/order_management/backend \
+  --output-dir /tmp/mcpiler-t03-demo.yntZ20/artifacts
+
+status=degraded expose=4 hide=1 requires-review=3 degraded=1
+semantic_ir.json=/tmp/mcpiler-t03-demo.yntZ20/artifacts/semantic_ir.json
+manifest.json=/tmp/mcpiler-t03-demo.yntZ20/artifacts/manifest.json
+baseline_manifest.json=/tmp/mcpiler-t03-demo.yntZ20/artifacts/baseline_manifest.json
+risk_report.md=/tmp/mcpiler-t03-demo.yntZ20/artifacts/risk_report.md
+```
+
+The one degraded endpoint is the deliberately unmatched archive operation; the
+command exits zero because it emitted a complete review artifact set.
+
+Verification completed on 2026-08-20:
+
+- `uv run python -m unittest discover -v` — 24 tests passed.
+- `uv run python -m compileall -q mcpiler tests` — passed.
+- Public-boundary import smoke for the compiler, Semantic IR, risk helpers, and
+  CLI module — passed.
+- Independent artifact verification — `operations=8 proposed=4 baseline=8`,
+  with `expose=4`, `requires-review=3`, `hide=1`.
+- Cross-artifact verification — proposed manifest equals the ordered expose
+  subset, baseline covers every IR operation, report covers every IR operation,
+  operation order is canonical, and repeated identical runs are byte-identical.
+- Policy evidence — archive uses `CURATION_REVIEW_BLOCKER`; delete remains high
+  from its HTTP-method floor; refund rises from medium to high through its
+  validated financial signal; health remains low-risk and hides only because it
+  is internal/infrastructure; the fake analyzer is called for exactly seven
+  supported contexts.
+- No linter or static type checker is configured. No dependency was added for
+  T03, and no live analyzer or model call was made.
+
+Known limitations are deliberate T03 scope boundaries: the CLI uses only the
+fixed fake analyzer; manifests are project-defined MCP-like review artifacts,
+not deployable MCP artifacts; input-schema construction remains bounded to the
+approved fixture conventions; artifact installation stages all files before
+publication but is not a transactional filesystem protocol; and there is no
+configurable policy, score, capability discovery, live provider integration,
+MCP runtime, authorization workflow, or broader static analysis.
