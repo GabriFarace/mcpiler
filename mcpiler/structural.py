@@ -227,8 +227,8 @@ def _load_openapi(openapi_path: Path) -> JsonObject:
             "The OpenAPI document is not readable.",
         ) from error
     try:
-        document = json.loads(raw_document)
-    except json.JSONDecodeError as error:
+        document = json.loads(raw_document, parse_constant=_reject_json_constant)
+    except (json.JSONDecodeError, ValueError) as error:
         raise StructuralInputError(
             "openapi_invalid_json",
             "The OpenAPI document is not valid JSON.",
@@ -239,6 +239,10 @@ def _load_openapi(openapi_path: Path) -> JsonObject:
             "The OpenAPI document must be an object containing a paths object.",
         )
     return document
+
+
+def _reject_json_constant(value: str) -> None:
+    raise ValueError(f"Non-standard JSON constant: {value}")
 
 
 def _endpoint_context(
@@ -432,11 +436,18 @@ def _freeze_json(value: object) -> FrozenJsonValue:
 
 
 def _literal_routes(source_root: Path) -> dict[str, tuple[_Route, ...]]:
-    if not source_root.is_dir():
+    if source_root.is_symlink() or not source_root.is_dir():
         raise StructuralInputError(
             "source_root_unreadable",
-            "The Python source root is not a readable directory.",
+            "The Python source root is not a readable, non-symlinked directory.",
         )
+    try:
+        resolved_source_root = source_root.resolve(strict=True)
+    except OSError as error:
+        raise StructuralInputError(
+            "source_root_unreadable",
+            "The Python source root could not be resolved safely.",
+        ) from error
     routes: dict[str, list[_Route]] = {}
     try:
         source_paths = sorted(source_root.rglob("*.py"))
@@ -446,6 +457,20 @@ def _literal_routes(source_root: Path) -> dict[str, tuple[_Route, ...]]:
             "The Python source root could not be inspected.",
         ) from error
     for source_path in source_paths:
+        try:
+            resolved_source_path = source_path.resolve(strict=True)
+        except OSError as error:
+            raise StructuralInputError(
+                "source_root_unreadable",
+                "A Python source file could not be resolved safely.",
+            ) from error
+        if source_path.is_symlink() or not resolved_source_path.is_relative_to(
+            resolved_source_root
+        ):
+            raise StructuralInputError(
+                "source_root_unreadable",
+                "A Python source file is symlinked or resolves outside the selected source root.",
+            )
         try:
             source = source_path.read_text(encoding="utf-8")
         except (OSError, UnicodeError) as error:

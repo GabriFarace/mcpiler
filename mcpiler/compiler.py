@@ -14,8 +14,10 @@ from pydantic import BaseModel
 
 from .semantic import (
     AnalysisProvenance,
+    Confidence,
     EndpointSemanticRecord,
     EndpointSemantics,
+    Relevance,
     SemanticAnalysis,
     SemanticAnalyzer,
     SemanticClaim,
@@ -64,6 +66,16 @@ _ARTIFACT_NAMES = (
     "baseline_manifest.json",
     "risk_report.md",
 )
+_FIXED_OPERATION_KEYS = (
+    "DELETE /orders/{order_id}",
+    "GET /internal/health",
+    "GET /orders",
+    "GET /orders/{order_id}",
+    "PATCH /orders/{order_id}/address",
+    "POST /orders",
+    "POST /orders/{order_id}/archive",
+    "POST /orders/{order_id}/refund",
+)
 
 _OPERATIONAL_RISK_FLOORS: dict[str, RiskLevel] = {
     "GET": "low",
@@ -81,8 +93,16 @@ class PolicyReason:
 
 
 @dataclass(frozen=True, slots=True)
+class RelevanceAssessment:
+    classification: Relevance
+    confidence: Confidence | None
+    evidence_refs: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
 class RiskAssessment:
     operational_floor: RiskLevel
+    semantic_risk_signals: tuple[SemanticRiskSignal, ...]
     effective_risk: RiskLevel
     reasons: tuple[PolicyReason, ...]
 
@@ -98,6 +118,7 @@ class CurationDecision:
 class SemanticIrOperation:
     context: EndpointContext
     analysis: SemanticStageResult
+    relevance: RelevanceAssessment
     risk: RiskAssessment
     recommendation: CurationDecision
 
@@ -188,7 +209,7 @@ def complete_semantic_ir(
         )
     )
     return SemanticIr(
-        schema_version="mcpiler.semantic-ir.v1",
+        schema_version="mcpiler.semantic-ir.v2",
         run=SemanticIrRun(
             compiler_version="0.1.0",
             policy_version="t03-v1",
@@ -205,6 +226,14 @@ def compile_interface(request: CompileRequest) -> CompilationResult:
         structural = extract_endpoint_contexts(request.openapi_path, request.source_root)
     except StructuralInputError as error:
         raise CompilationError(error.category, str(error)) from error
+    operation_keys = tuple(
+        context.operation_key for context in structural.endpoint_contexts
+    )
+    if operation_keys != _FIXED_OPERATION_KEYS:
+        raise CompilationError(
+            "openapi_invalid_structure",
+            "The OpenAPI document does not contain the fixed eight MVP operations.",
+        )
     semantic = analyze_endpoint_contexts(structural.endpoint_contexts, request.analyzer)
     semantic_ir = complete_semantic_ir(structural, semantic)
     artifacts = _render_artifacts(semantic_ir)
@@ -240,14 +269,29 @@ def _complete_operation(record: EndpointSemanticRecord) -> SemanticIrOperation:
     )
     floor = operational_risk_floor(context.openapi_operation.method)
     effective = effective_risk(floor, signals)
+    relevance = (
+        RelevanceAssessment(
+            classification=record.analysis.semantics.relevance.classification,
+            confidence=record.analysis.semantics.relevance.confidence,
+            evidence_refs=record.analysis.semantics.relevance.evidence_refs,
+        )
+        if isinstance(record.analysis, SemanticSuccess)
+        else RelevanceAssessment(
+            classification="unknown",
+            confidence=None,
+            evidence_refs=(),
+        )
+    )
     risk = RiskAssessment(
         operational_floor=floor,
+        semantic_risk_signals=signals,
         effective_risk=effective,
         reasons=_risk_reasons(floor, effective, signals),
     )
     return SemanticIrOperation(
         context=context,
         analysis=record.analysis,
+        relevance=relevance,
         risk=risk,
         recommendation=_curation_decision(record, risk),
     )
@@ -739,7 +783,7 @@ def _render_risk_report(semantic_ir: SemanticIr) -> str:
             if isinstance(operation.analysis, SemanticSuccess)
             else None
         )
-        relevance = semantics.relevance.classification if semantics else "unknown"
+        relevance = operation.relevance.classification
         signals = (
             "; ".join(
                 f"{signal.category}:{signal.severity} ({signal.confidence}) [{', '.join(signal.evidence_refs)}]"

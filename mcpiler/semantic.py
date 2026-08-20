@@ -69,7 +69,9 @@ class AnalysisProvenance(_StrictSemanticModel):
     prompt_version: str = Field(min_length=1)
 
 
-class EndpointSemantics(_StrictSemanticModel):
+class EndpointSemanticOutput(_StrictSemanticModel):
+    """Provider-owned semantic claims before adapter provenance is attached."""
+
     purpose: SemanticClaim
     agent_description: SemanticClaim
     preconditions: tuple[SemanticClaim, ...]
@@ -77,8 +79,6 @@ class EndpointSemantics(_StrictSemanticModel):
     relevance: RelevanceClaim
     semantic_risk_signals: tuple[SemanticRiskSignal, ...]
     uncertainty_reasons: tuple[str, ...]
-    analysis_provenance: AnalysisProvenance
-
     @field_validator("uncertainty_reasons")
     @classmethod
     def require_explicit_uncertainty_reasons(
@@ -88,6 +88,10 @@ class EndpointSemantics(_StrictSemanticModel):
         if any(not reason.strip() for reason in reasons):
             raise ValueError("uncertainty reasons must not be blank")
         return reasons
+
+
+class EndpointSemantics(EndpointSemanticOutput):
+    analysis_provenance: AnalysisProvenance
 
 
 @dataclass(frozen=True, slots=True)

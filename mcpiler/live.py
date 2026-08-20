@@ -9,10 +9,12 @@ from typing import Any
 from urllib.parse import urlparse
 
 from langchain_openai import ChatOpenAI
+from langchain_core.tracers.context import tracing_v2_callback_var
+from langsmith import tracing_context
 
 from .semantic import (
     AnalysisProvenance,
-    EndpointSemantics,
+    EndpointSemanticOutput,
     SemanticAnalyzerResult,
     SemanticFailure,
     validate_endpoint_semantics,
@@ -113,7 +115,7 @@ class LangChainOpenAISemanticAnalyzer:
                 verbose=False,
             )
             structured_model = model.with_structured_output(
-                EndpointSemantics,
+                EndpointSemanticOutput,
                 method="json_schema",
                 include_raw=True,
             )
@@ -124,23 +126,28 @@ class LangChainOpenAISemanticAnalyzer:
         return cls(settings, structured_model)
 
     def analyze(self, context: EndpointContext) -> SemanticAnalyzerResult:
+        tracer_token = tracing_v2_callback_var.set(None)
         try:
-            result = self._structured_model.invoke(
-                [
-                    ("system", _SYSTEM_INSTRUCTIONS),
-                    ("human", _untrusted_context_message(context)),
-                ]
-            )
+            with tracing_context(enabled=False, parent=False):
+                result = self._structured_model.invoke(
+                    [
+                        ("system", _SYSTEM_INSTRUCTIONS),
+                        ("human", _untrusted_context_message(context)),
+                    ],
+                    config={"callbacks": []},
+                )
         except Exception:
             return SemanticFailure("analyzer_failed")
+        finally:
+            tracing_v2_callback_var.reset(tracer_token)
 
         if not isinstance(result, Mapping) or result.get("parsing_error") is not None:
             return SemanticFailure("invalid_semantic_output")
         parsed = result.get("parsed")
-        if not isinstance(parsed, EndpointSemantics):
+        if not isinstance(parsed, EndpointSemanticOutput):
             return SemanticFailure("invalid_semantic_output")
 
-        candidate = parsed.model_dump(mode="json")
+        candidate = parsed.model_dump(mode="json", exclude={"analysis_provenance"})
         candidate["analysis_provenance"] = self._provenance().model_dump(mode="json")
         return validate_endpoint_semantics(context, candidate)
 

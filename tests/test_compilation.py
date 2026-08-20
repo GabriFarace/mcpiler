@@ -313,6 +313,9 @@ class CompilationAcceptanceTests(unittest.TestCase):
                 {"expose": 4, "hide": 1, "requires-review": 3},
             )
             self.assertEqual(result.degraded_endpoint_count, 1)
+            self.assertEqual(
+                semantic_ir["schema_version"], "mcpiler.semantic-ir.v2"
+            )
             self.assertEqual(len(semantic_ir["operations"]), 8)
             self.assertEqual(len(manifest["tools"]), 4)
             self.assertEqual(len(baseline["tools"]), 8)
@@ -354,6 +357,10 @@ class CompilationAcceptanceTests(unittest.TestCase):
             )
             self.assertEqual(archive["context"]["source_match"]["status"], "unmatched")
             self.assertEqual(archive["analysis"]["status"], "skipped")
+            self.assertEqual(archive["relevance"]["classification"], "unknown")
+            self.assertIsNone(archive["relevance"]["confidence"])
+            self.assertEqual(archive["relevance"]["evidence_refs"], [])
+            self.assertEqual(archive["risk"]["semantic_risk_signals"], [])
             self.assertEqual(
                 archive["recommendation"]["rule_id"], "CURATION_REVIEW_BLOCKER"
             )
@@ -368,6 +375,11 @@ class CompilationAcceptanceTests(unittest.TestCase):
                     "confidence"
                 ],
                 "high",
+            )
+            self.assertEqual(refund["relevance"]["classification"], "user-facing")
+            self.assertEqual(
+                refund["risk"]["semantic_risk_signals"],
+                refund["analysis"]["semantics"]["semantic_risk_signals"],
             )
             self.assertEqual(
                 refund["risk"]["reasons"][1]["code"],
@@ -482,46 +494,16 @@ class CompilationAcceptanceTests(unittest.TestCase):
     def test_duplicate_operation_ids_use_stable_method_path_fallback_names(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             root = Path(temporary_directory)
-            source_root = root / "backend"
-            source_root.mkdir()
-            (source_root / "app.py").write_text(
-                "@app.get('/orders')\n"
-                "def list_orders():\n"
-                "    return []\n"
-                "@app.get('/orders/{order_id}')\n"
-                "def get_order(order_id: str):\n"
-                "    return {}\n",
-                encoding="utf-8",
+            document = json.loads(
+                (FIXTURE_ROOT / "openapi.json").read_text(encoding="utf-8")
             )
+            document["paths"]["/orders"]["get"]["operationId"] = "duplicate"
+            document["paths"]["/orders/{order_id}"]["get"][
+                "operationId"
+            ] = "duplicate"
             openapi_path = root / "openapi.json"
             openapi_path.write_text(
-                json.dumps(
-                    {
-                        "openapi": "3.1.0",
-                        "paths": {
-                            "/orders": {
-                                "get": {
-                                    "operationId": "duplicate",
-                                    "responses": {},
-                                }
-                            },
-                            "/orders/{order_id}": {
-                                "get": {
-                                    "operationId": "duplicate",
-                                    "parameters": [
-                                        {
-                                            "name": "order_id",
-                                            "in": "path",
-                                            "required": True,
-                                            "schema": {"type": "string"},
-                                        }
-                                    ],
-                                    "responses": {},
-                                }
-                            },
-                        },
-                    }
-                ),
+                json.dumps(document),
                 encoding="utf-8",
             )
             output = root / "artifacts"
@@ -529,7 +511,7 @@ class CompilationAcceptanceTests(unittest.TestCase):
             compile_interface(
                 CompileRequest(
                     openapi_path,
-                    source_root,
+                    FIXTURE_ROOT / "backend",
                     output,
                     FakeSemanticAnalyzer(),
                 )
@@ -541,40 +523,38 @@ class CompilationAcceptanceTests(unittest.TestCase):
                 (output / "baseline_manifest.json").read_text(encoding="utf-8")
             )
 
-        expected = ["get_orders", "get_orders_by_order_id"]
-        self.assertEqual([tool["name"] for tool in proposed["tools"]], expected)
-        self.assertEqual([tool["name"] for tool in baseline["tools"]], expected)
+        proposed_names = {
+            tool["_meta"]["mcpiler"]["source_operation"]["operation_key"]: tool[
+                "name"
+            ]
+            for tool in proposed["tools"]
+        }
+        baseline_names = {
+            tool["_meta"]["mcpiler"]["source_operation"]["operation_key"]: tool[
+                "name"
+            ]
+            for tool in baseline["tools"]
+        }
+        expected = {
+            "GET /orders": "get_orders",
+            "GET /orders/{order_id}": "get_orders_by_order_id",
+        }
+        self.assertEqual({key: proposed_names[key] for key in expected}, expected)
+        self.assertEqual({key: baseline_names[key] for key in expected}, expected)
 
     def test_fallback_names_do_not_claim_a_later_unique_operation_id(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             root = Path(temporary_directory)
-            source_root = root / "backend"
-            source_root.mkdir()
-            (source_root / "app.py").write_text(
-                "@app.get('/aaa')\n"
-                "def aaa():\n"
-                "    return {}\n"
-                "@app.get('/orders')\n"
-                "def list_orders():\n"
-                "    return []\n",
-                encoding="utf-8",
+            document = json.loads(
+                (FIXTURE_ROOT / "openapi.json").read_text(encoding="utf-8")
             )
+            document["paths"]["/orders"]["get"].pop("operationId")
+            document["paths"]["/orders/{order_id}"]["get"][
+                "operationId"
+            ] = "get_orders"
             openapi_path = root / "openapi.json"
             openapi_path.write_text(
-                json.dumps(
-                    {
-                        "openapi": "3.1.0",
-                        "paths": {
-                            "/aaa": {"get": {"responses": {}}},
-                            "/orders": {
-                                "get": {
-                                    "operationId": "get_aaa",
-                                    "responses": {},
-                                }
-                            },
-                        },
-                    }
-                ),
+                json.dumps(document),
                 encoding="utf-8",
             )
             output = root / "artifacts"
@@ -582,7 +562,7 @@ class CompilationAcceptanceTests(unittest.TestCase):
             compile_interface(
                 CompileRequest(
                     openapi_path,
-                    source_root,
+                    FIXTURE_ROOT / "backend",
                     output,
                     FakeSemanticAnalyzer(),
                 )
@@ -594,9 +574,26 @@ class CompilationAcceptanceTests(unittest.TestCase):
                 (output / "baseline_manifest.json").read_text(encoding="utf-8")
             )
 
-        self.assertEqual([tool["name"] for tool in proposed["tools"]], ["get_aaa"])
-        self.assertEqual(baseline["tools"][1]["name"], "get_aaa")
-        self.assertRegex(baseline["tools"][0]["name"], r"^get_aaa_[0-9a-f]{8}$")
+        proposed_names = {
+            tool["_meta"]["mcpiler"]["source_operation"]["operation_key"]: tool[
+                "name"
+            ]
+            for tool in proposed["tools"]
+        }
+        baseline_names = {
+            tool["_meta"]["mcpiler"]["source_operation"]["operation_key"]: tool[
+                "name"
+            ]
+            for tool in baseline["tools"]
+        }
+        self.assertEqual(proposed_names["GET /orders/{order_id}"], "get_orders")
+        self.assertRegex(
+            proposed_names["GET /orders"], r"^get_orders_[0-9a-f]{8}$"
+        )
+        self.assertEqual(baseline_names["GET /orders/{order_id}"], "get_orders")
+        self.assertEqual(
+            baseline_names["GET /orders"], proposed_names["GET /orders"]
+        )
 
     def test_ir_invariant_failure_is_global_before_artifact_publication(self) -> None:
         structural = extract_endpoint_contexts(
@@ -691,7 +688,79 @@ class CompilationAcceptanceTests(unittest.TestCase):
             self.assertEqual(write_failure.exception.category, "artifact_write_failed")
             self.assertEqual(output.read_text(encoding="utf-8"), "not a directory")
 
-    def test_serialization_failure_is_global_and_publishes_no_artifacts(self) -> None:
+    def test_compilation_rejects_an_openapi_document_without_the_fixed_operations(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            openapi_path = root / "openapi.json"
+            openapi_path.write_text(
+                json.dumps({"openapi": "3.1.0", "paths": {}}),
+                encoding="utf-8",
+            )
+            output = root / "artifacts"
+            analyzer = FakeSemanticAnalyzer()
+
+            with self.assertRaises(CompilationError) as raised:
+                compile_interface(
+                    CompileRequest(
+                        openapi_path,
+                        FIXTURE_ROOT / "backend",
+                        output,
+                        analyzer,
+                    )
+                )
+
+            self.assertEqual(raised.exception.category, "openapi_invalid_structure")
+            self.assertEqual(analyzer.calls, [])
+            self.assertFalse(output.exists())
+
+    def test_source_root_cannot_follow_python_symlinks_outside_its_boundary(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            source_root = root / "backend"
+            source_root.mkdir()
+            (source_root / "linked_app.py").symlink_to(
+                FIXTURE_ROOT / "backend" / "app.py"
+            )
+            output = root / "artifacts"
+            analyzer = FakeSemanticAnalyzer()
+
+            with self.assertRaises(CompilationError) as raised:
+                compile_interface(
+                    CompileRequest(
+                        FIXTURE_ROOT / "openapi.json",
+                        source_root,
+                        output,
+                        analyzer,
+                    )
+                )
+
+            self.assertEqual(raised.exception.category, "source_root_unreadable")
+            self.assertEqual(analyzer.calls, [])
+            self.assertFalse(output.exists())
+
+    def test_selected_source_root_cannot_be_a_directory_symlink(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            source_root = root / "backend"
+            source_root.symlink_to(FIXTURE_ROOT / "backend", target_is_directory=True)
+            analyzer = FakeSemanticAnalyzer()
+
+            with self.assertRaises(CompilationError) as raised:
+                compile_interface(
+                    CompileRequest(
+                        FIXTURE_ROOT / "openapi.json",
+                        source_root,
+                        root / "artifacts",
+                        analyzer,
+                    )
+                )
+
+            self.assertEqual(raised.exception.category, "source_root_unreadable")
+            self.assertEqual(analyzer.calls, [])
+
+    def test_nonstandard_json_constants_fail_before_semantic_analysis(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             root = Path(temporary_directory)
             source_root = root / "backend"
@@ -711,6 +780,7 @@ class CompilationAcceptanceTests(unittest.TestCase):
                 encoding="utf-8",
             )
             output = root / "artifacts"
+            analyzer = FakeSemanticAnalyzer()
 
             with self.assertRaises(CompilationError) as raised:
                 compile_interface(
@@ -718,11 +788,12 @@ class CompilationAcceptanceTests(unittest.TestCase):
                         openapi_path,
                         source_root,
                         output,
-                        FakeSemanticAnalyzer(),
+                        analyzer,
                     )
                 )
 
-            self.assertEqual(raised.exception.category, "serialization_failed")
+            self.assertEqual(raised.exception.category, "openapi_invalid_json")
+            self.assertEqual(analyzer.calls, [])
             self.assertFalse(output.exists())
 
 
@@ -754,51 +825,9 @@ class CliTests(unittest.TestCase):
             self.assertIn("analyzer_initialization_failed", error.getvalue())
             self.assertFalse((root / "artifacts").exists())
 
-    def test_cli_reports_success_degraded_success_and_global_failure(self) -> None:
+    def test_cli_reports_degraded_success_and_global_failure(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             root = Path(temporary_directory)
-            source_root = root / "backend"
-            source_root.mkdir()
-            (source_root / "app.py").write_text(
-                "@app.get('/orders')\n"
-                "def list_orders():\n"
-                "    return []\n",
-                encoding="utf-8",
-            )
-            openapi_path = root / "openapi.json"
-            openapi_path.write_text(
-                json.dumps(
-                    {
-                        "openapi": "3.1.0",
-                        "paths": {
-                            "/orders": {
-                                "get": {
-                                    "operationId": "list_orders",
-                                    "responses": {},
-                                }
-                            }
-                        },
-                    }
-                ),
-                encoding="utf-8",
-            )
-
-            success_out = StringIO()
-            with redirect_stdout(success_out):
-                success_exit = main(
-                    [
-                        "--openapi",
-                        str(openapi_path),
-                        "--source-root",
-                        str(source_root),
-                        "--output-dir",
-                        str(root / "success"),
-                    ]
-                )
-            self.assertEqual(success_exit, 0)
-            self.assertIn("status=success", success_out.getvalue())
-            self.assertIn("expose=1", success_out.getvalue())
-
             degraded_out = StringIO()
             with redirect_stdout(degraded_out):
                 degraded_exit = main(
@@ -822,7 +851,7 @@ class CliTests(unittest.TestCase):
                         "--openapi",
                         str(root / "missing.json"),
                         "--source-root",
-                        str(source_root),
+                        str(FIXTURE_ROOT / "backend"),
                         "--output-dir",
                         str(root / "failure"),
                     ]

@@ -1,5 +1,10 @@
 # T04 Live Analyzer Evaluation
 
+> Historical artifact notice: this captured run predates T05 remediation and
+> uses `mcpiler.semantic-ir.v1`. T05 corrects the authoritative relevance/risk
+> projection in `v2`; the live model was not rerun and these evaluation artifacts
+> remain unchanged rather than being fabricated after the fact.
+
 ## Captured configuration
 
 - Provider: `openai-compatible` through LM Studio.
