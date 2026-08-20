@@ -1,0 +1,1750 @@
+{
+  "notice": "Candidate MCP interface decision aids requiring human review; not a deployable MCP server, authorization result, publication approval, or security guarantee.",
+  "operations": [
+    {
+      "analysis": {
+        "semantics": {
+          "agent_description": {
+            "confidence": "high",
+            "evidence_refs": [
+              "source.handler",
+              "source.direct_call.0"
+            ],
+            "text": "The endpoint interacts with an internal order store to perform a deletion operation."
+          },
+          "analysis_provenance": {
+            "analyzer_id": "langchain-openai-semantic-analyzer",
+            "model_id": "google/gemma-4-12b-qat",
+            "prompt_version": "t04-v1",
+            "provider_id": "openai-compatible",
+            "schema_version": "v1"
+          },
+          "preconditions": [
+            {
+              "confidence": "high",
+              "evidence_refs": [
+                "openapi.parameter.0"
+              ],
+              "text": "The order_id must be provided in the path."
+            }
+          ],
+          "purpose": {
+            "confidence": "high",
+            "evidence_refs": [
+              "openapi.operation",
+              "source.docstring"
+            ],
+            "text": "The endpoint permanently deletes an order identified by its order_id."
+          },
+          "relevance": {
+            "classification": "unknown",
+            "confidence": "high",
+            "evidence_refs": [
+              "openapi.operation"
+            ],
+            "text": "This endpoint is relevant for any operations involving the permanent removal of orders from the system."
+          },
+          "semantic_risk_signals": [],
+          "side_effects": [
+            {
+              "confidence": "high",
+              "evidence_refs": [
+                "openapi.operation",
+                "source.docstring"
+              ],
+              "text": "Permanently deletes an order from the system."
+            }
+          ],
+          "uncertainty_reasons": [
+            "The evidence does not specify the authorization logic or user permissions required to delete an order.",
+            "The implementation details of order_store.delete_order are not provided, so the exact scope of the deletion (e.g., cascading effects) is unknown."
+          ]
+        },
+        "status": "succeeded"
+      },
+      "context": {
+        "evidence": [
+          {
+            "id": "openapi.operation",
+            "kind": "openapi.operation",
+            "origin": "openapi",
+            "provenance": {
+              "json_pointer": "#/paths/~1orders~1{order_id}/delete"
+            },
+            "value": {
+              "description": "Permanently deletes an order.",
+              "method": "DELETE",
+              "operation_id": "delete_order",
+              "path": "/orders/{order_id}",
+              "summary": "Delete order"
+            }
+          },
+          {
+            "id": "openapi.parameter.0",
+            "kind": "openapi.parameter",
+            "origin": "openapi",
+            "provenance": {
+              "json_pointer": "#/paths/~1orders~1{order_id}/delete/parameters/0"
+            },
+            "value": {
+              "description": null,
+              "location": "path",
+              "name": "order_id",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "id": "source.route.0",
+            "kind": "source.route",
+            "origin": "source",
+            "provenance": {
+              "end_line": 40,
+              "relative_path": "app.py",
+              "start_line": 40
+            },
+            "value": {
+              "method": "DELETE",
+              "path": "/orders/{order_id}"
+            }
+          },
+          {
+            "id": "source.signature",
+            "kind": "source.signature",
+            "origin": "source",
+            "provenance": {
+              "end_line": 43,
+              "relative_path": "app.py",
+              "start_line": 41
+            },
+            "value": "def delete_order(order_id: str) -> None"
+          },
+          {
+            "id": "source.handler",
+            "kind": "source.handler",
+            "origin": "source",
+            "provenance": {
+              "end_line": 43,
+              "relative_path": "app.py",
+              "start_line": 41
+            },
+            "value": "def delete_order(order_id: str) -> None:\n    \"\"\"Permanently delete an order.\"\"\"\n    order_store.delete_order(order_id)"
+          },
+          {
+            "id": "source.docstring",
+            "kind": "source.docstring",
+            "origin": "source",
+            "provenance": {
+              "end_line": 43,
+              "relative_path": "app.py",
+              "start_line": 41
+            },
+            "value": "Permanently delete an order."
+          },
+          {
+            "id": "source.direct_call.0",
+            "kind": "source.direct_call",
+            "origin": "source",
+            "provenance": {
+              "end_line": 43,
+              "relative_path": "app.py",
+              "start_line": 41
+            },
+            "value": "order_store.delete_order"
+          }
+        ],
+        "evidence_completeness": {
+          "gaps": [],
+          "status": "complete"
+        },
+        "handler": {
+          "direct_call_names": [
+            "order_store.delete_order"
+          ],
+          "docstring": {
+            "original_char_count": 28,
+            "text": "Permanently delete an order.",
+            "truncated": false
+          },
+          "end_line": 43,
+          "name": "delete_order",
+          "relative_path": "app.py",
+          "signature": "def delete_order(order_id: str) -> None",
+          "source": {
+            "original_char_count": 118,
+            "text": "def delete_order(order_id: str) -> None:\n    \"\"\"Permanently delete an order.\"\"\"\n    order_store.delete_order(order_id)",
+            "truncated": false
+          },
+          "start_line": 41
+        },
+        "openapi_operation": {
+          "description": "Permanently deletes an order.",
+          "method": "DELETE",
+          "operation_id": "delete_order",
+          "parameters": [
+            {
+              "description": null,
+              "location": "path",
+              "name": "order_id",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "path": "/orders/{order_id}",
+          "request_body": null,
+          "responses": [
+            {
+              "schemas": [],
+              "status_code": "204"
+            }
+          ],
+          "summary": "Delete order"
+        },
+        "operation_key": "DELETE /orders/{order_id}",
+        "source_match": {
+          "candidate_locations": [
+            {
+              "end_line": 40,
+              "relative_path": "app.py",
+              "start_line": 40
+            }
+          ],
+          "reason_codes": [],
+          "status": "matched"
+        }
+      },
+      "recommendation": {
+        "outcome": "requires-review",
+        "reasons": [
+          {
+            "code": "explicit_semantic_uncertainty",
+            "evidence_refs": [],
+            "message": "The semantic analysis reports explicit uncertainty."
+          },
+          {
+            "code": "unknown_relevance",
+            "evidence_refs": [
+              "openapi.operation"
+            ],
+            "message": "The operation relevance is unknown."
+          }
+        ],
+        "rule_id": "CURATION_REVIEW_MATERIAL_UNCERTAINTY"
+      },
+      "risk": {
+        "effective_risk": "high",
+        "operational_floor": "high",
+        "reasons": [
+          {
+            "code": "http_method_floor",
+            "evidence_refs": [
+              "openapi.operation"
+            ],
+            "message": "The HTTP method establishes a high operational/action floor."
+          }
+        ]
+      }
+    },
+    {
+      "analysis": {
+        "semantics": {
+          "agent_description": {
+            "confidence": "high",
+            "evidence_refs": [
+              "openapi.operation",
+              "source.handler"
+            ],
+            "text": "This endpoint provides an internal health check status."
+          },
+          "analysis_provenance": {
+            "analyzer_id": "langchain-openai-semantic-analyzer",
+            "model_id": "google/gemma-4-12b-qat",
+            "prompt_version": "t04-v1",
+            "provider_id": "openai-compatible",
+            "schema_version": "v1"
+          },
+          "preconditions": [],
+          "purpose": {
+            "confidence": "high",
+            "evidence_refs": [
+              "openapi.operation",
+              "source.docstring"
+            ],
+            "text": "Reports the internal service health."
+          },
+          "relevance": {
+            "classification": "unknown",
+            "confidence": "high",
+            "evidence_refs": [
+              "source.handler",
+              "openapi.response_schema.0"
+            ],
+            "text": "The endpoint is a basic health check that returns a static status message."
+          },
+          "semantic_risk_signals": [],
+          "side_effects": [],
+          "uncertainty_reasons": []
+        },
+        "status": "succeeded"
+      },
+      "context": {
+        "evidence": [
+          {
+            "id": "openapi.operation",
+            "kind": "openapi.operation",
+            "origin": "openapi",
+            "provenance": {
+              "json_pointer": "#/paths/~1internal~1health/get"
+            },
+            "value": {
+              "description": "Reports internal service health.",
+              "method": "GET",
+              "operation_id": "health",
+              "path": "/internal/health",
+              "summary": "Internal health check"
+            }
+          },
+          {
+            "id": "openapi.response_schema.0",
+            "kind": "openapi.response_schema",
+            "origin": "openapi",
+            "provenance": {
+              "json_pointer": "#/paths/~1internal~1health/get/responses/200/content/application~1json/schema"
+            },
+            "value": {
+              "media_type": "application/json",
+              "schema": {
+                "properties": {
+                  "status": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "status"
+                ],
+                "type": "object"
+              },
+              "status_code": "200"
+            }
+          },
+          {
+            "id": "source.route.0",
+            "kind": "source.route",
+            "origin": "source",
+            "provenance": {
+              "end_line": 46,
+              "relative_path": "app.py",
+              "start_line": 46
+            },
+            "value": {
+              "method": "GET",
+              "path": "/internal/health"
+            }
+          },
+          {
+            "id": "source.signature",
+            "kind": "source.signature",
+            "origin": "source",
+            "provenance": {
+              "end_line": 49,
+              "relative_path": "app.py",
+              "start_line": 47
+            },
+            "value": "def health() -> dict"
+          },
+          {
+            "id": "source.handler",
+            "kind": "source.handler",
+            "origin": "source",
+            "provenance": {
+              "end_line": 49,
+              "relative_path": "app.py",
+              "start_line": 47
+            },
+            "value": "def health() -> dict:\n    \"\"\"Report internal service health.\"\"\"\n    return {\"status\": \"ok\"}"
+          },
+          {
+            "id": "source.docstring",
+            "kind": "source.docstring",
+            "origin": "source",
+            "provenance": {
+              "end_line": 49,
+              "relative_path": "app.py",
+              "start_line": 47
+            },
+            "value": "Report internal service health."
+          }
+        ],
+        "evidence_completeness": {
+          "gaps": [],
+          "status": "complete"
+        },
+        "handler": {
+          "direct_call_names": [],
+          "docstring": {
+            "original_char_count": 31,
+            "text": "Report internal service health.",
+            "truncated": false
+          },
+          "end_line": 49,
+          "name": "health",
+          "relative_path": "app.py",
+          "signature": "def health() -> dict",
+          "source": {
+            "original_char_count": 91,
+            "text": "def health() -> dict:\n    \"\"\"Report internal service health.\"\"\"\n    return {\"status\": \"ok\"}",
+            "truncated": false
+          },
+          "start_line": 47
+        },
+        "openapi_operation": {
+          "description": "Reports internal service health.",
+          "method": "GET",
+          "operation_id": "health",
+          "parameters": [],
+          "path": "/internal/health",
+          "request_body": null,
+          "responses": [
+            {
+              "schemas": [
+                {
+                  "media_type": "application/json",
+                  "schema": {
+                    "properties": {
+                      "status": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "status"
+                    ],
+                    "type": "object"
+                  }
+                }
+              ],
+              "status_code": "200"
+            }
+          ],
+          "summary": "Internal health check"
+        },
+        "operation_key": "GET /internal/health",
+        "source_match": {
+          "candidate_locations": [
+            {
+              "end_line": 46,
+              "relative_path": "app.py",
+              "start_line": 46
+            }
+          ],
+          "reason_codes": [],
+          "status": "matched"
+        }
+      },
+      "recommendation": {
+        "outcome": "requires-review",
+        "reasons": [
+          {
+            "code": "unknown_relevance",
+            "evidence_refs": [
+              "openapi.response_schema.0",
+              "source.handler"
+            ],
+            "message": "The operation relevance is unknown."
+          }
+        ],
+        "rule_id": "CURATION_REVIEW_MATERIAL_UNCERTAINTY"
+      },
+      "risk": {
+        "effective_risk": "low",
+        "operational_floor": "low",
+        "reasons": [
+          {
+            "code": "http_method_floor",
+            "evidence_refs": [
+              "openapi.operation"
+            ],
+            "message": "The HTTP method establishes a low operational/action floor."
+          }
+        ]
+      }
+    },
+    {
+      "analysis": {
+        "category": "analyzer_failed",
+        "message": "The semantic analyzer did not return an analysis.",
+        "status": "failed"
+      },
+      "context": {
+        "evidence": [
+          {
+            "id": "openapi.operation",
+            "kind": "openapi.operation",
+            "origin": "openapi",
+            "provenance": {
+              "json_pointer": "#/paths/~1orders/get"
+            },
+            "value": {
+              "description": "Lists orders visible to the current user.",
+              "method": "GET",
+              "operation_id": "list_orders",
+              "path": "/orders",
+              "summary": "List orders"
+            }
+          },
+          {
+            "id": "openapi.response_schema.0",
+            "kind": "openapi.response_schema",
+            "origin": "openapi",
+            "provenance": {
+              "json_pointer": "#/paths/~1orders/get/responses/200/content/application~1json/schema"
+            },
+            "value": {
+              "media_type": "application/json",
+              "schema": {
+                "items": {
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "status_code": "200"
+            }
+          },
+          {
+            "id": "source.route.0",
+            "kind": "source.route",
+            "origin": "source",
+            "provenance": {
+              "end_line": 7,
+              "relative_path": "app.py",
+              "start_line": 7
+            },
+            "value": {
+              "method": "GET",
+              "path": "/orders"
+            }
+          },
+          {
+            "id": "source.signature",
+            "kind": "source.signature",
+            "origin": "source",
+            "provenance": {
+              "end_line": 10,
+              "relative_path": "app.py",
+              "start_line": 8
+            },
+            "value": "def list_orders() -> list[dict]"
+          },
+          {
+            "id": "source.handler",
+            "kind": "source.handler",
+            "origin": "source",
+            "provenance": {
+              "end_line": 10,
+              "relative_path": "app.py",
+              "start_line": 8
+            },
+            "value": "def list_orders() -> list[dict]:\n    \"\"\"List orders visible to the current user.\"\"\"\n    return order_store.list_orders()"
+          },
+          {
+            "id": "source.docstring",
+            "kind": "source.docstring",
+            "origin": "source",
+            "provenance": {
+              "end_line": 10,
+              "relative_path": "app.py",
+              "start_line": 8
+            },
+            "value": "List orders visible to the current user."
+          },
+          {
+            "id": "source.direct_call.0",
+            "kind": "source.direct_call",
+            "origin": "source",
+            "provenance": {
+              "end_line": 10,
+              "relative_path": "app.py",
+              "start_line": 8
+            },
+            "value": "order_store.list_orders"
+          }
+        ],
+        "evidence_completeness": {
+          "gaps": [],
+          "status": "complete"
+        },
+        "handler": {
+          "direct_call_names": [
+            "order_store.list_orders"
+          ],
+          "docstring": {
+            "original_char_count": 40,
+            "text": "List orders visible to the current user.",
+            "truncated": false
+          },
+          "end_line": 10,
+          "name": "list_orders",
+          "relative_path": "app.py",
+          "signature": "def list_orders() -> list[dict]",
+          "source": {
+            "original_char_count": 120,
+            "text": "def list_orders() -> list[dict]:\n    \"\"\"List orders visible to the current user.\"\"\"\n    return order_store.list_orders()",
+            "truncated": false
+          },
+          "start_line": 8
+        },
+        "openapi_operation": {
+          "description": "Lists orders visible to the current user.",
+          "method": "GET",
+          "operation_id": "list_orders",
+          "parameters": [],
+          "path": "/orders",
+          "request_body": null,
+          "responses": [
+            {
+              "schemas": [
+                {
+                  "media_type": "application/json",
+                  "schema": {
+                    "items": {
+                      "type": "object"
+                    },
+                    "type": "array"
+                  }
+                }
+              ],
+              "status_code": "200"
+            }
+          ],
+          "summary": "List orders"
+        },
+        "operation_key": "GET /orders",
+        "source_match": {
+          "candidate_locations": [
+            {
+              "end_line": 7,
+              "relative_path": "app.py",
+              "start_line": 7
+            }
+          ],
+          "reason_codes": [],
+          "status": "matched"
+        }
+      },
+      "recommendation": {
+        "outcome": "requires-review",
+        "reasons": [
+          {
+            "code": "semantic_analyzer_failed",
+            "evidence_refs": [],
+            "message": "The semantic analyzer did not return an analysis."
+          }
+        ],
+        "rule_id": "CURATION_REVIEW_BLOCKER"
+      },
+      "risk": {
+        "effective_risk": "low",
+        "operational_floor": "low",
+        "reasons": [
+          {
+            "code": "http_method_floor",
+            "evidence_refs": [
+              "openapi.operation"
+            ],
+            "message": "The HTTP method establishes a low operational/action floor."
+          }
+        ]
+      }
+    },
+    {
+      "analysis": {
+        "category": "analyzer_failed",
+        "message": "The semantic analyzer did not return an analysis.",
+        "status": "failed"
+      },
+      "context": {
+        "evidence": [
+          {
+            "id": "openapi.operation",
+            "kind": "openapi.operation",
+            "origin": "openapi",
+            "provenance": {
+              "json_pointer": "#/paths/~1orders~1{order_id}/get"
+            },
+            "value": {
+              "description": "Returns one order.",
+              "method": "GET",
+              "operation_id": "get_order",
+              "path": "/orders/{order_id}",
+              "summary": "Get order"
+            }
+          },
+          {
+            "id": "openapi.parameter.0",
+            "kind": "openapi.parameter",
+            "origin": "openapi",
+            "provenance": {
+              "json_pointer": "#/paths/~1orders~1{order_id}/get/parameters/0"
+            },
+            "value": {
+              "description": "Order identifier",
+              "location": "path",
+              "name": "order_id",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "id": "openapi.response_schema.0",
+            "kind": "openapi.response_schema",
+            "origin": "openapi",
+            "provenance": {
+              "json_pointer": "#/paths/~1orders~1{order_id}/get/responses/200/content/application~1json/schema"
+            },
+            "value": {
+              "media_type": "application/json",
+              "schema": {
+                "type": "object"
+              },
+              "status_code": "200"
+            }
+          },
+          {
+            "id": "source.route.0",
+            "kind": "source.route",
+            "origin": "source",
+            "provenance": {
+              "end_line": 13,
+              "relative_path": "app.py",
+              "start_line": 13
+            },
+            "value": {
+              "method": "GET",
+              "path": "/orders/{order_id}"
+            }
+          },
+          {
+            "id": "source.signature",
+            "kind": "source.signature",
+            "origin": "source",
+            "provenance": {
+              "end_line": 16,
+              "relative_path": "app.py",
+              "start_line": 14
+            },
+            "value": "def get_order(order_id: str) -> dict"
+          },
+          {
+            "id": "source.handler",
+            "kind": "source.handler",
+            "origin": "source",
+            "provenance": {
+              "end_line": 16,
+              "relative_path": "app.py",
+              "start_line": 14
+            },
+            "value": "def get_order(order_id: str) -> dict:\n    \"\"\"Return one order by identifier.\"\"\"\n    return order_store.get_order(order_id)"
+          },
+          {
+            "id": "source.docstring",
+            "kind": "source.docstring",
+            "origin": "source",
+            "provenance": {
+              "end_line": 16,
+              "relative_path": "app.py",
+              "start_line": 14
+            },
+            "value": "Return one order by identifier."
+          },
+          {
+            "id": "source.direct_call.0",
+            "kind": "source.direct_call",
+            "origin": "source",
+            "provenance": {
+              "end_line": 16,
+              "relative_path": "app.py",
+              "start_line": 14
+            },
+            "value": "order_store.get_order"
+          }
+        ],
+        "evidence_completeness": {
+          "gaps": [],
+          "status": "complete"
+        },
+        "handler": {
+          "direct_call_names": [
+            "order_store.get_order"
+          ],
+          "docstring": {
+            "original_char_count": 31,
+            "text": "Return one order by identifier.",
+            "truncated": false
+          },
+          "end_line": 16,
+          "name": "get_order",
+          "relative_path": "app.py",
+          "signature": "def get_order(order_id: str) -> dict",
+          "source": {
+            "original_char_count": 122,
+            "text": "def get_order(order_id: str) -> dict:\n    \"\"\"Return one order by identifier.\"\"\"\n    return order_store.get_order(order_id)",
+            "truncated": false
+          },
+          "start_line": 14
+        },
+        "openapi_operation": {
+          "description": "Returns one order.",
+          "method": "GET",
+          "operation_id": "get_order",
+          "parameters": [
+            {
+              "description": "Order identifier",
+              "location": "path",
+              "name": "order_id",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "path": "/orders/{order_id}",
+          "request_body": null,
+          "responses": [
+            {
+              "schemas": [
+                {
+                  "media_type": "application/json",
+                  "schema": {
+                    "type": "object"
+                  }
+                }
+              ],
+              "status_code": "200"
+            }
+          ],
+          "summary": "Get order"
+        },
+        "operation_key": "GET /orders/{order_id}",
+        "source_match": {
+          "candidate_locations": [
+            {
+              "end_line": 13,
+              "relative_path": "app.py",
+              "start_line": 13
+            }
+          ],
+          "reason_codes": [],
+          "status": "matched"
+        }
+      },
+      "recommendation": {
+        "outcome": "requires-review",
+        "reasons": [
+          {
+            "code": "semantic_analyzer_failed",
+            "evidence_refs": [],
+            "message": "The semantic analyzer did not return an analysis."
+          }
+        ],
+        "rule_id": "CURATION_REVIEW_BLOCKER"
+      },
+      "risk": {
+        "effective_risk": "low",
+        "operational_floor": "low",
+        "reasons": [
+          {
+            "code": "http_method_floor",
+            "evidence_refs": [
+              "openapi.operation"
+            ],
+            "message": "The HTTP method establishes a low operational/action floor."
+          }
+        ]
+      }
+    },
+    {
+      "analysis": {
+        "category": "analyzer_failed",
+        "message": "The semantic analyzer did not return an analysis.",
+        "status": "failed"
+      },
+      "context": {
+        "evidence": [
+          {
+            "id": "openapi.operation",
+            "kind": "openapi.operation",
+            "origin": "openapi",
+            "provenance": {
+              "json_pointer": "#/paths/~1orders~1{order_id}~1address/patch"
+            },
+            "value": {
+              "description": "Updates the delivery address for an order.",
+              "method": "PATCH",
+              "operation_id": "update_order_address",
+              "path": "/orders/{order_id}/address",
+              "summary": "Update order address"
+            }
+          },
+          {
+            "id": "openapi.parameter.0",
+            "kind": "openapi.parameter",
+            "origin": "openapi",
+            "provenance": {
+              "json_pointer": "#/paths/~1orders~1{order_id}~1address/patch/parameters/0"
+            },
+            "value": {
+              "description": null,
+              "location": "path",
+              "name": "order_id",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "id": "openapi.request_body_schema.0",
+            "kind": "openapi.request_body_schema",
+            "origin": "openapi",
+            "provenance": {
+              "json_pointer": "#/paths/~1orders~1{order_id}~1address/patch/requestBody/content/application~1json/schema"
+            },
+            "value": {
+              "media_type": "application/json",
+              "required": true,
+              "schema": {
+                "properties": {
+                  "city": {
+                    "type": "string"
+                  },
+                  "street": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "street",
+                  "city"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          {
+            "id": "openapi.response_schema.0",
+            "kind": "openapi.response_schema",
+            "origin": "openapi",
+            "provenance": {
+              "json_pointer": "#/paths/~1orders~1{order_id}~1address/patch/responses/200/content/application~1json/schema"
+            },
+            "value": {
+              "media_type": "application/json",
+              "schema": {
+                "type": "object"
+              },
+              "status_code": "200"
+            }
+          },
+          {
+            "id": "source.route.0",
+            "kind": "source.route",
+            "origin": "source",
+            "provenance": {
+              "end_line": 25,
+              "relative_path": "app.py",
+              "start_line": 25
+            },
+            "value": {
+              "method": "PATCH",
+              "path": "/orders/{order_id}/address"
+            }
+          },
+          {
+            "id": "source.signature",
+            "kind": "source.signature",
+            "origin": "source",
+            "provenance": {
+              "end_line": 31,
+              "relative_path": "app.py",
+              "start_line": 26
+            },
+            "value": "def update_order_address(order_id: str, address: dict=Body(...)) -> dict"
+          },
+          {
+            "id": "source.handler",
+            "kind": "source.handler",
+            "origin": "source",
+            "provenance": {
+              "end_line": 31,
+              "relative_path": "app.py",
+              "start_line": 26
+            },
+            "value": "def update_order_address(order_id: str, address: dict = Body(...)) -> dict:\n    \"\"\"Update the delivery address before the order ships.\"\"\"\n    order = order_store.get_order(order_id)\n    if order[\"status\"] == \"shipped\":\n        raise HTTPException(status_code=409, detail=\"A shipped order cannot change address\")\n    return order_store.update_address(order_id, address)"
+          },
+          {
+            "id": "source.docstring",
+            "kind": "source.docstring",
+            "origin": "source",
+            "provenance": {
+              "end_line": 31,
+              "relative_path": "app.py",
+              "start_line": 26
+            },
+            "value": "Update the delivery address before the order ships."
+          },
+          {
+            "id": "source.direct_call.0",
+            "kind": "source.direct_call",
+            "origin": "source",
+            "provenance": {
+              "end_line": 31,
+              "relative_path": "app.py",
+              "start_line": 26
+            },
+            "value": "order_store.get_order"
+          },
+          {
+            "id": "source.direct_call.1",
+            "kind": "source.direct_call",
+            "origin": "source",
+            "provenance": {
+              "end_line": 31,
+              "relative_path": "app.py",
+              "start_line": 26
+            },
+            "value": "HTTPException"
+          },
+          {
+            "id": "source.direct_call.2",
+            "kind": "source.direct_call",
+            "origin": "source",
+            "provenance": {
+              "end_line": 31,
+              "relative_path": "app.py",
+              "start_line": 26
+            },
+            "value": "order_store.update_address"
+          }
+        ],
+        "evidence_completeness": {
+          "gaps": [],
+          "status": "complete"
+        },
+        "handler": {
+          "direct_call_names": [
+            "order_store.get_order",
+            "HTTPException",
+            "order_store.update_address"
+          ],
+          "docstring": {
+            "original_char_count": 51,
+            "text": "Update the delivery address before the order ships.",
+            "truncated": false
+          },
+          "end_line": 31,
+          "name": "update_order_address",
+          "relative_path": "app.py",
+          "signature": "def update_order_address(order_id: str, address: dict=Body(...)) -> dict",
+          "source": {
+            "original_char_count": 368,
+            "text": "def update_order_address(order_id: str, address: dict = Body(...)) -> dict:\n    \"\"\"Update the delivery address before the order ships.\"\"\"\n    order = order_store.get_order(order_id)\n    if order[\"status\"] == \"shipped\":\n        raise HTTPException(status_code=409, detail=\"A shipped order cannot change address\")\n    return order_store.update_address(order_id, address)",
+            "truncated": false
+          },
+          "start_line": 26
+        },
+        "openapi_operation": {
+          "description": "Updates the delivery address for an order.",
+          "method": "PATCH",
+          "operation_id": "update_order_address",
+          "parameters": [
+            {
+              "description": null,
+              "location": "path",
+              "name": "order_id",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "path": "/orders/{order_id}/address",
+          "request_body": {
+            "required": true,
+            "schemas": [
+              {
+                "media_type": "application/json",
+                "schema": {
+                  "properties": {
+                    "city": {
+                      "type": "string"
+                    },
+                    "street": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "street",
+                    "city"
+                  ],
+                  "type": "object"
+                }
+              }
+            ]
+          },
+          "responses": [
+            {
+              "schemas": [
+                {
+                  "media_type": "application/json",
+                  "schema": {
+                    "type": "object"
+                  }
+                }
+              ],
+              "status_code": "200"
+            }
+          ],
+          "summary": "Update order address"
+        },
+        "operation_key": "PATCH /orders/{order_id}/address",
+        "source_match": {
+          "candidate_locations": [
+            {
+              "end_line": 25,
+              "relative_path": "app.py",
+              "start_line": 25
+            }
+          ],
+          "reason_codes": [],
+          "status": "matched"
+        }
+      },
+      "recommendation": {
+        "outcome": "requires-review",
+        "reasons": [
+          {
+            "code": "semantic_analyzer_failed",
+            "evidence_refs": [],
+            "message": "The semantic analyzer did not return an analysis."
+          }
+        ],
+        "rule_id": "CURATION_REVIEW_BLOCKER"
+      },
+      "risk": {
+        "effective_risk": "medium",
+        "operational_floor": "medium",
+        "reasons": [
+          {
+            "code": "http_method_floor",
+            "evidence_refs": [
+              "openapi.operation"
+            ],
+            "message": "The HTTP method establishes a medium operational/action floor."
+          }
+        ]
+      }
+    },
+    {
+      "analysis": {
+        "category": "analyzer_failed",
+        "message": "The semantic analyzer did not return an analysis.",
+        "status": "failed"
+      },
+      "context": {
+        "evidence": [
+          {
+            "id": "openapi.operation",
+            "kind": "openapi.operation",
+            "origin": "openapi",
+            "provenance": {
+              "json_pointer": "#/paths/~1orders/post"
+            },
+            "value": {
+              "description": "Creates an order for a customer.",
+              "method": "POST",
+              "operation_id": "create_order",
+              "path": "/orders",
+              "summary": "Create order"
+            }
+          },
+          {
+            "id": "openapi.request_body_schema.0",
+            "kind": "openapi.request_body_schema",
+            "origin": "openapi",
+            "provenance": {
+              "json_pointer": "#/paths/~1orders/post/requestBody/content/application~1json/schema"
+            },
+            "value": {
+              "media_type": "application/json",
+              "required": true,
+              "schema": {
+                "properties": {
+                  "customer_id": {
+                    "type": "string"
+                  },
+                  "items": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "customer_id",
+                  "items"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          {
+            "id": "openapi.response_schema.0",
+            "kind": "openapi.response_schema",
+            "origin": "openapi",
+            "provenance": {
+              "json_pointer": "#/paths/~1orders/post/responses/201/content/application~1json/schema"
+            },
+            "value": {
+              "media_type": "application/json",
+              "schema": {
+                "type": "object"
+              },
+              "status_code": "201"
+            }
+          },
+          {
+            "id": "source.route.0",
+            "kind": "source.route",
+            "origin": "source",
+            "provenance": {
+              "end_line": 19,
+              "relative_path": "app.py",
+              "start_line": 19
+            },
+            "value": {
+              "method": "POST",
+              "path": "/orders"
+            }
+          },
+          {
+            "id": "source.signature",
+            "kind": "source.signature",
+            "origin": "source",
+            "provenance": {
+              "end_line": 22,
+              "relative_path": "app.py",
+              "start_line": 20
+            },
+            "value": "def create_order(order: dict=Body(...)) -> dict"
+          },
+          {
+            "id": "source.handler",
+            "kind": "source.handler",
+            "origin": "source",
+            "provenance": {
+              "end_line": 22,
+              "relative_path": "app.py",
+              "start_line": 20
+            },
+            "value": "def create_order(order: dict = Body(...)) -> dict:\n    \"\"\"Create a new order.\"\"\"\n    return order_store.create_order(order)"
+          },
+          {
+            "id": "source.docstring",
+            "kind": "source.docstring",
+            "origin": "source",
+            "provenance": {
+              "end_line": 22,
+              "relative_path": "app.py",
+              "start_line": 20
+            },
+            "value": "Create a new order."
+          },
+          {
+            "id": "source.direct_call.0",
+            "kind": "source.direct_call",
+            "origin": "source",
+            "provenance": {
+              "end_line": 22,
+              "relative_path": "app.py",
+              "start_line": 20
+            },
+            "value": "order_store.create_order"
+          }
+        ],
+        "evidence_completeness": {
+          "gaps": [],
+          "status": "complete"
+        },
+        "handler": {
+          "direct_call_names": [
+            "order_store.create_order"
+          ],
+          "docstring": {
+            "original_char_count": 19,
+            "text": "Create a new order.",
+            "truncated": false
+          },
+          "end_line": 22,
+          "name": "create_order",
+          "relative_path": "app.py",
+          "signature": "def create_order(order: dict=Body(...)) -> dict",
+          "source": {
+            "original_char_count": 123,
+            "text": "def create_order(order: dict = Body(...)) -> dict:\n    \"\"\"Create a new order.\"\"\"\n    return order_store.create_order(order)",
+            "truncated": false
+          },
+          "start_line": 20
+        },
+        "openapi_operation": {
+          "description": "Creates an order for a customer.",
+          "method": "POST",
+          "operation_id": "create_order",
+          "parameters": [],
+          "path": "/orders",
+          "request_body": {
+            "required": true,
+            "schemas": [
+              {
+                "media_type": "application/json",
+                "schema": {
+                  "properties": {
+                    "customer_id": {
+                      "type": "string"
+                    },
+                    "items": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "customer_id",
+                    "items"
+                  ],
+                  "type": "object"
+                }
+              }
+            ]
+          },
+          "responses": [
+            {
+              "schemas": [
+                {
+                  "media_type": "application/json",
+                  "schema": {
+                    "type": "object"
+                  }
+                }
+              ],
+              "status_code": "201"
+            }
+          ],
+          "summary": "Create order"
+        },
+        "operation_key": "POST /orders",
+        "source_match": {
+          "candidate_locations": [
+            {
+              "end_line": 19,
+              "relative_path": "app.py",
+              "start_line": 19
+            }
+          ],
+          "reason_codes": [],
+          "status": "matched"
+        }
+      },
+      "recommendation": {
+        "outcome": "requires-review",
+        "reasons": [
+          {
+            "code": "semantic_analyzer_failed",
+            "evidence_refs": [],
+            "message": "The semantic analyzer did not return an analysis."
+          }
+        ],
+        "rule_id": "CURATION_REVIEW_BLOCKER"
+      },
+      "risk": {
+        "effective_risk": "medium",
+        "operational_floor": "medium",
+        "reasons": [
+          {
+            "code": "http_method_floor",
+            "evidence_refs": [
+              "openapi.operation"
+            ],
+            "message": "The HTTP method establishes a medium operational/action floor."
+          }
+        ]
+      }
+    },
+    {
+      "analysis": {
+        "reason_codes": [
+          "no_literal_route_match"
+        ],
+        "source_match_status": "unmatched",
+        "status": "skipped"
+      },
+      "context": {
+        "evidence": [
+          {
+            "id": "openapi.operation",
+            "kind": "openapi.operation",
+            "origin": "openapi",
+            "provenance": {
+              "json_pointer": "#/paths/~1orders~1{order_id}~1archive/post"
+            },
+            "value": {
+              "description": "Archives an order in a backend not represented by the supplied source fixture.",
+              "method": "POST",
+              "operation_id": "archive_order",
+              "path": "/orders/{order_id}/archive",
+              "summary": "Archive order"
+            }
+          },
+          {
+            "id": "openapi.parameter.0",
+            "kind": "openapi.parameter",
+            "origin": "openapi",
+            "provenance": {
+              "json_pointer": "#/paths/~1orders~1{order_id}~1archive/post/parameters/0"
+            },
+            "value": {
+              "description": null,
+              "location": "path",
+              "name": "order_id",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "id": "openapi.response_schema.0",
+            "kind": "openapi.response_schema",
+            "origin": "openapi",
+            "provenance": {
+              "json_pointer": "#/paths/~1orders~1{order_id}~1archive/post/responses/202/content/application~1json/schema"
+            },
+            "value": {
+              "media_type": "application/json",
+              "schema": {
+                "type": "object"
+              },
+              "status_code": "202"
+            }
+          }
+        ],
+        "evidence_completeness": {
+          "gaps": [
+            {
+              "code": "source_unmatched",
+              "message": "No exact literal route match."
+            }
+          ],
+          "status": "incomplete"
+        },
+        "handler": null,
+        "openapi_operation": {
+          "description": "Archives an order in a backend not represented by the supplied source fixture.",
+          "method": "POST",
+          "operation_id": "archive_order",
+          "parameters": [
+            {
+              "description": null,
+              "location": "path",
+              "name": "order_id",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "path": "/orders/{order_id}/archive",
+          "request_body": null,
+          "responses": [
+            {
+              "schemas": [
+                {
+                  "media_type": "application/json",
+                  "schema": {
+                    "type": "object"
+                  }
+                }
+              ],
+              "status_code": "202"
+            }
+          ],
+          "summary": "Archive order"
+        },
+        "operation_key": "POST /orders/{order_id}/archive",
+        "source_match": {
+          "candidate_locations": [],
+          "reason_codes": [
+            "no_literal_route_match"
+          ],
+          "status": "unmatched"
+        }
+      },
+      "recommendation": {
+        "outcome": "requires-review",
+        "reasons": [
+          {
+            "code": "source_match_unmatched",
+            "evidence_refs": [],
+            "message": "The operation does not have one supported, unique source match."
+          },
+          {
+            "code": "evidence_gap_source_unmatched",
+            "evidence_refs": [],
+            "message": "No exact literal route match."
+          }
+        ],
+        "rule_id": "CURATION_REVIEW_BLOCKER"
+      },
+      "risk": {
+        "effective_risk": "medium",
+        "operational_floor": "medium",
+        "reasons": [
+          {
+            "code": "http_method_floor",
+            "evidence_refs": [
+              "openapi.operation"
+            ],
+            "message": "The HTTP method establishes a medium operational/action floor."
+          }
+        ]
+      }
+    },
+    {
+      "analysis": {
+        "category": "analyzer_failed",
+        "message": "The semantic analyzer did not return an analysis.",
+        "status": "failed"
+      },
+      "context": {
+        "evidence": [
+          {
+            "id": "openapi.operation",
+            "kind": "openapi.operation",
+            "origin": "openapi",
+            "provenance": {
+              "json_pointer": "#/paths/~1orders~1{order_id}~1refund/post"
+            },
+            "value": {
+              "description": "Requests a refund for an eligible order.",
+              "method": "POST",
+              "operation_id": "refund_order",
+              "path": "/orders/{order_id}/refund",
+              "summary": "Refund order"
+            }
+          },
+          {
+            "id": "openapi.parameter.0",
+            "kind": "openapi.parameter",
+            "origin": "openapi",
+            "provenance": {
+              "json_pointer": "#/paths/~1orders~1{order_id}~1refund/post/parameters/0"
+            },
+            "value": {
+              "description": null,
+              "location": "path",
+              "name": "order_id",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "id": "openapi.response_schema.0",
+            "kind": "openapi.response_schema",
+            "origin": "openapi",
+            "provenance": {
+              "json_pointer": "#/paths/~1orders~1{order_id}~1refund/post/responses/200/content/application~1json/schema"
+            },
+            "value": {
+              "media_type": "application/json",
+              "schema": {
+                "type": "object"
+              },
+              "status_code": "200"
+            }
+          },
+          {
+            "id": "source.route.0",
+            "kind": "source.route",
+            "origin": "source",
+            "provenance": {
+              "end_line": 34,
+              "relative_path": "app.py",
+              "start_line": 34
+            },
+            "value": {
+              "method": "POST",
+              "path": "/orders/{order_id}/refund"
+            }
+          },
+          {
+            "id": "source.signature",
+            "kind": "source.signature",
+            "origin": "source",
+            "provenance": {
+              "end_line": 37,
+              "relative_path": "app.py",
+              "start_line": 35
+            },
+            "value": "def refund_order(order_id: str) -> dict"
+          },
+          {
+            "id": "source.handler",
+            "kind": "source.handler",
+            "origin": "source",
+            "provenance": {
+              "end_line": 37,
+              "relative_path": "app.py",
+              "start_line": 35
+            },
+            "value": "def refund_order(order_id: str) -> dict:\n    \"\"\"Refund an eligible order through the payment provider.\"\"\"\n    return payment_gateway.refund_order(order_id)"
+          },
+          {
+            "id": "source.docstring",
+            "kind": "source.docstring",
+            "origin": "source",
+            "provenance": {
+              "end_line": 37,
+              "relative_path": "app.py",
+              "start_line": 35
+            },
+            "value": "Refund an eligible order through the payment provider."
+          },
+          {
+            "id": "source.direct_call.0",
+            "kind": "source.direct_call",
+            "origin": "source",
+            "provenance": {
+              "end_line": 37,
+              "relative_path": "app.py",
+              "start_line": 35
+            },
+            "value": "payment_gateway.refund_order"
+          }
+        ],
+        "evidence_completeness": {
+          "gaps": [],
+          "status": "complete"
+        },
+        "handler": {
+          "direct_call_names": [
+            "payment_gateway.refund_order"
+          ],
+          "docstring": {
+            "original_char_count": 54,
+            "text": "Refund an eligible order through the payment provider.",
+            "truncated": false
+          },
+          "end_line": 37,
+          "name": "refund_order",
+          "relative_path": "app.py",
+          "signature": "def refund_order(order_id: str) -> dict",
+          "source": {
+            "original_char_count": 155,
+            "text": "def refund_order(order_id: str) -> dict:\n    \"\"\"Refund an eligible order through the payment provider.\"\"\"\n    return payment_gateway.refund_order(order_id)",
+            "truncated": false
+          },
+          "start_line": 35
+        },
+        "openapi_operation": {
+          "description": "Requests a refund for an eligible order.",
+          "method": "POST",
+          "operation_id": "refund_order",
+          "parameters": [
+            {
+              "description": null,
+              "location": "path",
+              "name": "order_id",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "path": "/orders/{order_id}/refund",
+          "request_body": null,
+          "responses": [
+            {
+              "schemas": [
+                {
+                  "media_type": "application/json",
+                  "schema": {
+                    "type": "object"
+                  }
+                }
+              ],
+              "status_code": "200"
+            }
+          ],
+          "summary": "Refund order"
+        },
+        "operation_key": "POST /orders/{order_id}/refund",
+        "source_match": {
+          "candidate_locations": [
+            {
+              "end_line": 34,
+              "relative_path": "app.py",
+              "start_line": 34
+            }
+          ],
+          "reason_codes": [],
+          "status": "matched"
+        }
+      },
+      "recommendation": {
+        "outcome": "requires-review",
+        "reasons": [
+          {
+            "code": "semantic_analyzer_failed",
+            "evidence_refs": [],
+            "message": "The semantic analyzer did not return an analysis."
+          }
+        ],
+        "rule_id": "CURATION_REVIEW_BLOCKER"
+      },
+      "risk": {
+        "effective_risk": "medium",
+        "operational_floor": "medium",
+        "reasons": [
+          {
+            "code": "http_method_floor",
+            "evidence_refs": [
+              "openapi.operation"
+            ],
+            "message": "The HTTP method establishes a medium operational/action floor."
+          }
+        ]
+      }
+    }
+  ],
+  "run": {
+    "analyzer_provenance": [
+      {
+        "analyzer_id": "langchain-openai-semantic-analyzer",
+        "model_id": "google/gemma-4-12b-qat",
+        "prompt_version": "t04-v1",
+        "provider_id": "openai-compatible",
+        "schema_version": "v1"
+      }
+    ],
+    "compiler_version": "0.1.0",
+    "handler_source_limit": 4000,
+    "policy_version": "t03-v1"
+  },
+  "schema_version": "mcpiler.semantic-ir.v1"
+}

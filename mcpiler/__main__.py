@@ -1,4 +1,4 @@
-"""Thin command-line adapter for deterministic fixture compilation."""
+"""Thin command-line adapter for fake or explicitly selected live compilation."""
 
 import argparse
 from collections.abc import Sequence
@@ -14,7 +14,28 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--openapi", required=True, type=Path)
     parser.add_argument("--source-root", required=True, type=Path)
     parser.add_argument("--output-dir", required=True, type=Path)
+    parser.add_argument("--analyzer", choices=("fake", "live"), default="fake")
     arguments = parser.parse_args(argv)
+
+    if arguments.analyzer == "live":
+        try:
+            from .live import LangChainOpenAISemanticAnalyzer, LiveAnalyzerInitializationError
+
+            analyzer = LangChainOpenAISemanticAnalyzer.from_environment()
+        except Exception as error:
+            category = getattr(error, "category", "analyzer_initialization_failed")
+            message = (
+                str(error)
+                if category == "analyzer_initialization_failed"
+                else "The live semantic analyzer could not be initialized."
+            )
+            print(
+                f"compilation failed [{category}]: {message}",
+                file=sys.stderr,
+            )
+            return 1
+    else:
+        analyzer = FakeSemanticAnalyzer()
 
     try:
         result = compile_interface(
@@ -22,7 +43,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 openapi_path=arguments.openapi,
                 source_root=arguments.source_root,
                 output_dir=arguments.output_dir,
-                analyzer=FakeSemanticAnalyzer(),
+                analyzer=analyzer,
             )
         )
     except CompilationError as error:

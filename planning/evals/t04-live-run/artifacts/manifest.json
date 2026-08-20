@@ -1,0 +1,9 @@
+{
+  "_meta": {
+    "mcpiler": {
+      "notice": "Candidate MCP interface decision aids requiring human review; not a deployable MCP server, authorization result, publication approval, or security guarantee.",
+      "schema_version": "mcpiler.manifest.v1"
+    }
+  },
+  "tools": []
+}

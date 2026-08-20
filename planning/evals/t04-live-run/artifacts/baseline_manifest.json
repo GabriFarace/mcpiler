@@ -1,0 +1,268 @@
+{
+  "_meta": {
+    "mcpiler": {
+      "notice": "Candidate MCP interface decision aids requiring human review; not a deployable MCP server, authorization result, publication approval, or security guarantee.",
+      "schema_version": "mcpiler.baseline-manifest.v1"
+    }
+  },
+  "tools": [
+    {
+      "_meta": {
+        "mcpiler": {
+          "source_operation": {
+            "method": "DELETE",
+            "operation_id": "delete_order",
+            "operation_key": "DELETE /orders/{order_id}",
+            "path": "/orders/{order_id}"
+          }
+        }
+      },
+      "description": "Delete order\n\nPermanently deletes an order.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "order_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "order_id"
+        ],
+        "type": "object"
+      },
+      "name": "delete_order"
+    },
+    {
+      "_meta": {
+        "mcpiler": {
+          "source_operation": {
+            "method": "GET",
+            "operation_id": "health",
+            "operation_key": "GET /internal/health",
+            "path": "/internal/health"
+          }
+        }
+      },
+      "description": "Internal health check\n\nReports internal service health.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "name": "health",
+      "outputSchema": {
+        "properties": {
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "_meta": {
+        "mcpiler": {
+          "source_operation": {
+            "method": "GET",
+            "operation_id": "list_orders",
+            "operation_key": "GET /orders",
+            "path": "/orders"
+          }
+        }
+      },
+      "description": "List orders\n\nLists orders visible to the current user.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "name": "list_orders",
+      "outputSchema": {
+        "items": {
+          "type": "object"
+        },
+        "type": "array"
+      }
+    },
+    {
+      "_meta": {
+        "mcpiler": {
+          "source_operation": {
+            "method": "GET",
+            "operation_id": "get_order",
+            "operation_key": "GET /orders/{order_id}",
+            "path": "/orders/{order_id}"
+          }
+        }
+      },
+      "description": "Get order\n\nReturns one order.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "order_id": {
+            "description": "Order identifier",
+            "type": "string"
+          }
+        },
+        "required": [
+          "order_id"
+        ],
+        "type": "object"
+      },
+      "name": "get_order",
+      "outputSchema": {
+        "type": "object"
+      }
+    },
+    {
+      "_meta": {
+        "mcpiler": {
+          "source_operation": {
+            "method": "PATCH",
+            "operation_id": "update_order_address",
+            "operation_key": "PATCH /orders/{order_id}/address",
+            "path": "/orders/{order_id}/address"
+          }
+        }
+      },
+      "description": "Update order address\n\nUpdates the delivery address for an order.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "properties": {
+              "city": {
+                "type": "string"
+              },
+              "street": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "street",
+              "city"
+            ],
+            "type": "object"
+          },
+          "order_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "order_id",
+          "body"
+        ],
+        "type": "object"
+      },
+      "name": "update_order_address",
+      "outputSchema": {
+        "type": "object"
+      }
+    },
+    {
+      "_meta": {
+        "mcpiler": {
+          "source_operation": {
+            "method": "POST",
+            "operation_id": "create_order",
+            "operation_key": "POST /orders",
+            "path": "/orders"
+          }
+        }
+      },
+      "description": "Create order\n\nCreates an order for a customer.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "properties": {
+              "customer_id": {
+                "type": "string"
+              },
+              "items": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "customer_id",
+              "items"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "type": "object"
+      },
+      "name": "create_order",
+      "outputSchema": {
+        "type": "object"
+      }
+    },
+    {
+      "_meta": {
+        "mcpiler": {
+          "source_operation": {
+            "method": "POST",
+            "operation_id": "archive_order",
+            "operation_key": "POST /orders/{order_id}/archive",
+            "path": "/orders/{order_id}/archive"
+          }
+        }
+      },
+      "description": "Archive order\n\nArchives an order in a backend not represented by the supplied source fixture.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "order_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "order_id"
+        ],
+        "type": "object"
+      },
+      "name": "archive_order",
+      "outputSchema": {
+        "type": "object"
+      }
+    },
+    {
+      "_meta": {
+        "mcpiler": {
+          "source_operation": {
+            "method": "POST",
+            "operation_id": "refund_order",
+            "operation_key": "POST /orders/{order_id}/refund",
+            "path": "/orders/{order_id}/refund"
+          }
+        }
+      },
+      "description": "Refund order\n\nRequests a refund for an eligible order.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "order_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "order_id"
+        ],
+        "type": "object"
+      },
+      "name": "refund_order",
+      "outputSchema": {
+        "type": "object"
+      }
+    }
+  ]
+}

@@ -3,7 +3,9 @@ from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from pathlib import Path
 import json
+import os
 import tempfile
+from unittest.mock import patch
 
 from mcpiler.compiler import (
     CompilationError,
@@ -725,6 +727,33 @@ class CompilationAcceptanceTests(unittest.TestCase):
 
 
 class CliTests(unittest.TestCase):
+    def test_cli_rejects_missing_live_configuration_before_compilation(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            error = StringIO()
+            with patch.dict(
+                os.environ,
+                {
+                    "MCPILER_LIVE_MODEL": "",
+                },
+            ), redirect_stderr(error):
+                exit_code = main(
+                    [
+                        "--analyzer",
+                        "live",
+                        "--openapi",
+                        str(root / "missing.json"),
+                        "--source-root",
+                        str(root / "missing-source"),
+                        "--output-dir",
+                        str(root / "artifacts"),
+                    ]
+                )
+
+            self.assertEqual(exit_code, 1)
+            self.assertIn("analyzer_initialization_failed", error.getvalue())
+            self.assertFalse((root / "artifacts").exists())
+
     def test_cli_reports_success_degraded_success_and_global_failure(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             root = Path(temporary_directory)
