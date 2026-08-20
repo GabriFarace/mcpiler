@@ -113,3 +113,16 @@ Wait for human approval before proceeding.
 
 If an AI recommendation is materially wrong, unsafe, or over-complex,
 record the real incident in `planning/agent-mistakes.md`.
+
+## Agent skills
+
+### Issue tracker
+
+Repository-local Markdown: specifications live in `planning/specs/` and
+implementation tickets live in `planning/tickets/`. See
+`docs/agents/issue-tracker.md`.
+
+### Domain docs
+
+Single-context layout: shared vocabulary lives in root `CONTEXT.md`, and
+ADRs live in `planning/decisions/`. See `docs/agents/domain.md`.
