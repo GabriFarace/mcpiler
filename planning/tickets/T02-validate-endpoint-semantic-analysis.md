@@ -20,35 +20,35 @@ Blocked by **T01: Extract bounded endpoint contexts from the fixed fixture**.
 
 ## Acceptance criteria
 
-- [ ] A provider-neutral `SemanticAnalyzer` accepts exactly one bounded endpoint
+- [x] A provider-neutral `SemanticAnalyzer` accepts exactly one bounded endpoint
       context and returns either one typed semantic analysis or one typed,
       sanitized endpoint-local failure; compiler code does not depend on a
       provider-specific request or response shape.
-- [ ] The validated semantic output contains the approved purpose,
+- [x] The validated semantic output contains the approved purpose,
       agent-description, precondition, side-effect, relevance, semantic risk
       signal, uncertainty-reason, and analysis-provenance fields and rejects
       missing fields, extra fields, wrong types, and invalid enum values.
-- [ ] Every semantic claim carries text, ordinal claim-local confidence, and one
+- [x] Every semantic claim carries text, ordinal claim-local confidence, and one
       or more evidence references that resolve within the same endpoint context.
-- [ ] Relevance remains an independent `user-facing`,
+- [x] Relevance remains an independent `user-facing`,
       `internal/infrastructure`, or `unknown` classification and is not treated
       as a safety or authorization decision.
-- [ ] Semantic risk signals use only the approved categories and medium/high
+- [x] Semantic risk signals use only the approved categories and medium/high
       severities and remain review signals rather than vulnerability,
       authorization, compliance, or security findings.
-- [ ] Invalid or missing evidence references, malformed structured output, and
+- [x] Invalid or missing evidence references, malformed structured output, and
       analyzer call failures produce a stable endpoint-local failed status with
       a concise sanitized reason; other supported endpoint analyses continue.
-- [ ] Unmatched, ambiguous, and unsupported contexts are retained with a skipped
+- [x] Unmatched, ambiguous, and unsupported contexts are retained with a skipped
       analysis status and are never sent to the analyzer; a uniquely matched but
       truncated context may be analyzed without removing its structural gap.
-- [ ] A deterministic fake analyzer supplies fixed typed results for the
+- [x] A deterministic fake analyzer supplies fixed typed results for the
       supported fixture operations and can intentionally produce malformed
       output, invalid evidence references, or endpoint-local failure for tests.
-- [ ] Source, docstrings, and OpenAPI descriptions are represented as untrusted
+- [x] Source, docstrings, and OpenAPI descriptions are represented as untrusted
       delimited data at the analyzer boundary, with no raw prompt or response
       logging contract introduced.
-- [ ] This ticket produces validated semantic analysis and failure states only;
+- [x] This ticket produces validated semantic analysis and failure states only;
       it does not compute operational/action floors, effective risk, or a
       curation recommendation.
 
@@ -81,10 +81,52 @@ model.
 
 ## Status
 
-`blocked`
+`done`
 
-## Implementation evidence placeholder
+## Implementation evidence
 
-Not started. On completion, record the analyzer contract summary, deterministic
-fake behavior, validation and failure-isolation test commands/results, and known
-limitations here.
+Implemented the provider-neutral semantic seam in `mcpiler.semantic`.
+`SemanticAnalyzer.analyze(context: EndpointContext)` accepts exactly the immutable
+T01 context and returns `SemanticSuccess` with strict `EndpointSemantics` or a
+sanitized `SemanticFailure`. The endpoint stage returns one record retaining the
+original context and a `succeeded`, `failed`, or `skipped` analysis state.
+
+`EndpointSemantics` contains purpose, agent description, preconditions, side
+effects, independent relevance, semantic risk signals, explicit uncertainty
+reasons, and provenance. Evidence-linked claims carry only ordinal `high`,
+`medium`, or `low` confidence. Strict validation rejects missing or extra fields,
+wrong types, invalid enums, and blank uncertainty reasons. JSON-shaped provider
+arrays are accepted and normalized to immutable tuples.
+
+The shared `validate_endpoint_semantics(context, candidate)` path validates both
+model-shaped data and exact membership of every evidence reference in that
+context's `context.evidence` IDs. Invalid schema and evidence references become
+the stable endpoint-local categories `invalid_semantic_output` and
+`invalid_evidence_reference`; analyzer-returned failures and raised exceptions
+become `analyzer_failed`. Failure messages are fixed and do not retain raw model
+or exception data.
+
+The stage skips T01 unmatched, ambiguous, and unsupported contexts without an
+analyzer call; it analyzes uniquely matched truncated contexts while retaining
+their original completeness gap. `FakeSemanticAnalyzer` provides fixed results
+for the seven matched order-management endpoints and supports per-operation raw
+malformed data, invalid evidence references, typed failures, and raised
+exceptions. Raw fake data passes through the same shared validation seam
+intended for a future live adapter.
+
+Verification completed on 2026-08-20:
+
+- `uv run python -m unittest tests.test_semantic_analysis -v` — 5 tests passed.
+- `uv run python -m unittest discover -v` — 12 tests passed.
+- `uv run python -m compileall -q mcpiler tests` — passed.
+- No linter or static type checker is configured.
+- Two-axis review against the pre-T02 `HEAD` found no standards issues or scope
+  creep. One review finding for blank uncertainty reasons was fixed and
+  re-reviewed.
+
+Known limitations are deliberate T02 boundaries: no live provider adapter,
+credentials, transport, retry/timeout diagnostics, prompt construction, raw
+prompt/response logging, semantic IR completion, risk-floor/effective-risk
+calculation, curation policy, artifacts, or CLI behavior. Endpoint-local evidence
+IDs are validated only in the supplied context namespace; T02 does not create a
+parallel global evidence-ID scheme.
